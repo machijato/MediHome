@@ -3,7 +3,7 @@ title: "Bol u leđima: Moderni izazov i snaga fizikalne terapije"
 date: "2026-02-26"
 category: "Novosti"
 excerpt: "Bol u leđima pogađa gotovo 80% populacije barem jednom u životu. Saznajte uzroke, terapijske metode i kako fizikalna terapija pomaže u trajnom rješavanju problema."
-coverImage: "/bol u ledima.png"
+coverImage: "/articles/bol-u-ledima.png"
 ---
 
 ## Bol u leđima: Moderni izazov i snaga fizikalne terapije

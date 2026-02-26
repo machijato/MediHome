@@ -18,6 +18,7 @@ export interface Article {
   category: 'Zakon' | 'Savjeti' | 'Novosti';
   date: string;
   image: string;
+  excerptHtml?: string;
   isPaid?: boolean;
 }
 
