@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { MOCK_ARTICLES } from '../constants';
+import { MOCK_ARTICLES } from './constants';
 import { ArrowRight, Bookmark } from 'lucide-react';
 
 export const ArticleSection = () => {
