@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Navbar } from './components/Navbar';
-import { CategorySection } from './components/CategorySection';
-import { ListingCard } from './components/ListingCard';
-import { ArticleSection } from './components/ArticleSection';
-import { CreateListingModal } from './components/CreateListingModal';
+import { Navbar } from './Navbar';
+import { CategorySection } from './CategorySection';
+import { ListingCard } from './ListingCard';
+import { ArticleSection } from './ArticleSection';
+import { CreateListingModal } from './CreateListingModal';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
 
