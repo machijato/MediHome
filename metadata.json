@@ -1,0 +1,7 @@
+{
+  "name": "MediHome",
+  "description": "Platforma za povezivanje korisnika i pružatelja zdravstvenih usluga te najam medicinske opreme.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
