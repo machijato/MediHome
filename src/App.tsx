@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Navbar } from './components/Navbar';
-import { CategorySection } from './components/CategorySection';
-import { ListingCard } from './components/ListingCard';
+import { Navbar } from './Navbar';
+import { CategorySection } from './CategorySection';
+import { ListingCard } from './ListingCard';
 import { ArticleSection } from './components/ArticleSection';
 import { CreateListingModal } from './components/CreateListingModal';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
