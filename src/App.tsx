@@ -9,6 +9,7 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
 
 export default function App() {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +34,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      <div style={{background: 'yellow', padding: '10px', fontWeight: 'bold'}}>
+        SUPABASE URL: {supabaseUrl}
+      </div>
       <Navbar onPostAdClick={() => setIsModalOpen(true)} />
       
       <main className="flex-1">
