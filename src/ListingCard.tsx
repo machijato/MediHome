@@ -1,7 +1,7 @@
 import React from 'react';
 import { Star, MapPin, Clock } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Provider } from '../constants';
+import { Provider } from './constants';
 
 interface ListingCardProps {
   provider: Provider;

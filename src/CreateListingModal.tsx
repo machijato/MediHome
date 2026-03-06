@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
-import { ZUPANIJE } from '../constants';
+import { ZUPANIJE } from './constants';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -23,7 +23,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     workTypes: ['teren'] as string[], // Multiple selection allowed
     services: [] as string[],
     phone: '',
-    website: ''
+    website: '',
+    acceptedTerms: false
   });
 
   const categories = [
@@ -69,6 +70,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.acceptedTerms) {
+      return;
+    }
+
     onSubmit({
       ...formData,
       id: Math.random().toString(36).substr(2, 9),
@@ -355,6 +360,25 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                       onChange={e => setFormData({...formData, description: e.target.value})}
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-bold text-slate-700">Prihvaćanje uvjeta korištenja</label>
+                    <label className="checkbox-label flex items-center gap-2 text-sm text-slate-700">
+                      <input
+                        required
+                        type="checkbox"
+                        checked={formData.acceptedTerms}
+                        onChange={e => setFormData({ ...formData, acceptedTerms: e.target.checked })}
+                        className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary"
+                      />
+                      <span>
+                        Prihvaćam{' '}
+                        <a href="/uvjeti-koristenja" target="_blank" rel="noopener noreferrer">
+                          Opće uvjete korištenja
+                        </a>
+                      </span>
+                    </label>
+                  </div>
                 </div>
               )}
             </div>
@@ -389,7 +413,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 ) : (
                   <button
                     onClick={handleSubmit}
-                    className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
+                    disabled={!formData.acceptedTerms}
+                    className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Objavi oglas
                   </button>

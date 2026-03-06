@@ -1,14 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Navbar } from './components/Navbar';
-import { CategorySection } from './components/CategorySection';
-import { ListingCard } from './components/ListingCard';
-import { ArticleSection } from './components/ArticleSection';
-import { CreateListingModal } from './components/CreateListingModal';
+import { Navbar } from './Navbar';
+import { CategorySection } from './CategorySection';
+import { ListingCard } from './ListingCard';
+import { ArticleSection } from './ArticleSection';
+import { CreateListingModal } from './CreateListingModal';
+import { TermsPage } from './TermsPage';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
 
 export default function App() {
+  const isTermsPage = window.location.pathname === '/uvjeti-koristenja';
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +32,10 @@ export default function App() {
   const handleCreateListing = (newListing: Provider) => {
     setProviders([newListing, ...providers]);
   };
+
+  if (isTermsPage) {
+    return <TermsPage />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
