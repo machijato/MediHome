@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
-import { ZUPANIJE } from '../constants';
+import { ZUPANIJE } from './constants';
 
 interface CreateListingModalProps {
   isOpen: boolean;
