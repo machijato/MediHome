@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import { motion } from 'motion/react';
-import { CATEGORIES } from '../constants';
+import { CATEGORIES } from './constants';
 
 interface CategorySectionProps {
   activeCategory: string;
