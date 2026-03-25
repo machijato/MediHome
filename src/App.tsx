@@ -11,6 +11,9 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { HOMEPAGE_ADS, getActiveAdsByPosition } from './mockAds';
+import { TopAdBanner } from './components/ads/TopAdBanner';
+import { AdSectionLayout } from './components/ads/AdSectionLayout';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -32,6 +35,10 @@ function HomePage() {
     });
   }, [activeCategory, selectedCounty, searchQuery, providers]);
 
+  const topAds = useMemo(() => getActiveAdsByPosition(HOMEPAGE_ADS, 'top'), []);
+  const leftAds = useMemo(() => getActiveAdsByPosition(HOMEPAGE_ADS, 'left'), []);
+  const rightAds = useMemo(() => getActiveAdsByPosition(HOMEPAGE_ADS, 'right'), []);
+
   const handleCreateListing = (newListing: Provider) => {
     setProviders([newListing, ...providers]);
   };
@@ -41,60 +48,63 @@ function HomePage() {
       <Navbar onPostAdClick={() => setIsModalOpen(true)} />
 
       <main className="flex-1">
-        <section className="relative py-20 overflow-hidden bg-white">
-          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
+        <TopAdBanner ads={topAds} />
 
-          <div className="max-w-7xl mx-auto px-4 relative">
-            <div className="max-w-3xl">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-5xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6"
-              >
-                Zdravstvena njega <br />
-                <span className="text-primary">u vašem domu.</span>
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-xl text-slate-500 mb-10 leading-relaxed"
-              >
-                Povezujemo vas s najboljim fizioterapeutima, medicinskim sestrama i dobavljačima opreme. Brzo,
-                sigurno i pouzdano.
-              </motion.p>
+        <AdSectionLayout leftAds={leftAds} rightAds={rightAds}>
+          <section className="relative overflow-hidden bg-white py-20">
+            <div className="absolute top-0 right-0 h-[600px] w-[600px] -translate-y-1/2 translate-x-1/4 rounded-full bg-primary/5 blur-3xl" />
+            <div className="absolute bottom-0 left-0 h-[400px] w-[400px] translate-y-1/2 -translate-x-1/4 rounded-full bg-secondary/5 blur-3xl" />
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col sm:flex-row gap-4"
-              >
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    placeholder="Što trebate danas?"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-6 py-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all outline-none text-lg"
-                  />
-                </div>
-                <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                  Pretraži
-                </button>
-              </motion.div>
+            <div className="relative mx-auto max-w-7xl px-4">
+              <div className="max-w-3xl">
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 text-5xl font-extrabold leading-tight text-slate-900 md:text-6xl"
+                >
+                  Zdravstvena njega <br />
+                  <span className="text-primary">u vašem domu.</span>
+                </motion.h1>
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="mb-10 text-xl leading-relaxed text-slate-500"
+                >
+                  Povezujemo vas s najboljim fizioterapeutima, medicinskim sestrama i dobavljačima opreme. Brzo,
+                  sigurno i pouzdano.
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="flex flex-col gap-4 sm:flex-row"
+                >
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      placeholder="Što trebate danas?"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full rounded-2xl border-2 border-transparent bg-slate-100 px-6 py-4 text-lg outline-none transition-all focus:border-primary/20 focus:bg-white"
+                    />
+                  </div>
+                  <button className="rounded-2xl bg-primary px-8 py-4 text-lg font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90">
+                    Pretraži
+                  </button>
+                </motion.div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        <CategorySection
-          activeCategory={activeCategory}
-          setActiveCategory={(id) => setActiveCategory(activeCategory === id ? 'all' : id)}
-        />
+          <CategorySection
+            activeCategory={activeCategory}
+            setActiveCategory={(id) => setActiveCategory(activeCategory === id ? 'all' : id)}
+          />
 
-        <section className="pb-12">
-          <div className="max-w-7xl mx-auto px-4">
+          <section className="pb-12">
+            <div className="max-w-7xl mx-auto px-4">
             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
               <div className="flex flex-col md:flex-row items-center gap-6">
                 <div className="flex items-center gap-3 text-slate-900 font-bold shrink-0">
@@ -172,11 +182,11 @@ function HomePage() {
                 </button>
               </div>
             )}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4">
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4">
             <div className="relative bg-slate-900 rounded-[40px] overflow-hidden p-8 md:p-16">
               <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/20 blur-3xl -translate-y-1/2 translate-x-1/2" />
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
@@ -211,10 +221,11 @@ function HomePage() {
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+            </div>
+          </section>
 
-        <ArticleSection />
+          <ArticleSection />
+        </AdSectionLayout>
       </main>
 
       <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
