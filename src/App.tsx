@@ -11,6 +11,7 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { HorizontalAdBanner } from './HorizontalAdBanner';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -18,6 +19,9 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+
+  const isTopBannerActive = true;
+  const isMidBannerActive = true;
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -41,6 +45,8 @@ function HomePage() {
       <Navbar onPostAdClick={() => setIsModalOpen(true)} />
 
       <main className="flex-1">
+        {isTopBannerActive && <HorizontalAdBanner className="pt-8 pb-4 bg-white" />}
+
         <section className="relative py-20 overflow-hidden bg-white">
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
@@ -213,6 +219,8 @@ function HomePage() {
             </div>
           </div>
         </section>
+
+        {isMidBannerActive && <HorizontalAdBanner className="py-8 bg-slate-50" />}
 
         <ArticleSection />
       </main>
