@@ -11,8 +11,12 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { SideAd } from './components/ads/SideAd';
+import { TopBanner } from './components/ads/TopBanner';
 
 function HomePage() {
+  const isTopAdActive = true;
+  const isSideAdActive = true;
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,57 +45,72 @@ function HomePage() {
       <Navbar onPostAdClick={() => setIsModalOpen(true)} />
 
       <main className="flex-1">
-        <section className="relative py-20 overflow-hidden bg-white">
-          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
+        <div className="portal-container">
+          <div className="layout">
+            <aside className="left-sidebar" aria-label="Lijevi oglasni prostor">
+              {isSideAdActive && <SideAd />}
+            </aside>
 
-          <div className="max-w-7xl mx-auto px-4 relative">
-            <div className="max-w-3xl">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-5xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6"
-              >
-                Zdravstvena njega <br />
-                <span className="text-primary">u vašem domu.</span>
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-xl text-slate-500 mb-10 leading-relaxed"
-              >
-                Povezujemo vas s najboljim fizioterapeutima, medicinskim sestrama i dobavljačima opreme. Brzo,
-                sigurno i pouzdano.
-              </motion.p>
+            <div className="main-content">
+              <TopBanner isActive={isTopAdActive} />
+              <section className="relative py-16 overflow-hidden bg-white rounded-3xl">
+                <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col sm:flex-row gap-4"
-              >
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    placeholder="Što trebate danas?"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-6 py-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all outline-none text-lg"
-                  />
+                <div className="max-w-7xl mx-auto px-4 relative">
+                  <div className="max-w-3xl">
+                    <motion.h1
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-5xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6"
+                    >
+                      Zdravstvena njega <br />
+                      <span className="text-primary">u vašem domu.</span>
+                    </motion.h1>
+                    <motion.p
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="text-xl text-slate-500 mb-10 leading-relaxed"
+                    >
+                      Povezujemo vas s najboljim fizioterapeutima, medicinskim sestrama i dobavljačima opreme. Brzo,
+                      sigurno i pouzdano.
+                    </motion.p>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="flex flex-col sm:flex-row gap-4"
+                    >
+                      <div className="flex-1 relative">
+                        <input
+                          type="text"
+                          placeholder="Što trebate danas?"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full px-6 py-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all outline-none text-lg"
+                        />
+                      </div>
+                      <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                        Pretraži
+                      </button>
+                    </motion.div>
+                  </div>
                 </div>
-                <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                  Pretraži
-                </button>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+              </section>
 
-        <CategorySection
-          activeCategory={activeCategory}
-          setActiveCategory={(id) => setActiveCategory(activeCategory === id ? 'all' : id)}
-        />
+              <CategorySection
+                activeCategory={activeCategory}
+                setActiveCategory={(id) => setActiveCategory(activeCategory === id ? 'all' : id)}
+              />
+            </div>
+
+            <aside className="right-sidebar" aria-label="Desni oglasni prostor">
+              {isSideAdActive && <SideAd />}
+            </aside>
+          </div>
+        </div>
 
         <section className="pb-12">
           <div className="max-w-7xl mx-auto px-4">

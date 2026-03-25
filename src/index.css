@@ -21,3 +21,75 @@
 .card-hover {
   @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1;
 }
+
+.portal-container {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 300px 1fr 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.main-content {
+  min-width: 0;
+}
+
+.left-sidebar,
+.right-sidebar {
+  position: relative;
+}
+
+.side-ad {
+  position: sticky;
+  top: 100px;
+}
+
+.side-ad__content {
+  width: 300px;
+  height: 600px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 1px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #334155;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 1.5rem;
+}
+
+.top-banner {
+  margin: 0 0 1rem;
+}
+
+.top-banner__content {
+  width: 100%;
+  min-height: 96px;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #f8fafc;
+  border: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+@media (max-width: 1023px) {
+  .layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .left-sidebar,
+  .right-sidebar {
+    display: none;
+  }
+}
