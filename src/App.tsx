@@ -7,6 +7,7 @@ import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
 import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
+import { AdBanner } from './AdBanner';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
@@ -18,6 +19,8 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const isTopBannerActive = true;
+  const isMiddleBannerActive = true;
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -41,6 +44,8 @@ function HomePage() {
       <Navbar onPostAdClick={() => setIsModalOpen(true)} />
 
       <main className="flex-1">
+        {isTopBannerActive && <AdBanner size="medium" className="py-6 bg-white" />}
+
         <section className="relative py-20 overflow-hidden bg-white">
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
@@ -174,6 +179,8 @@ function HomePage() {
             )}
           </div>
         </section>
+
+        {isMiddleBannerActive && <AdBanner size="large" className="pb-6 md:pb-8 bg-white" />}
 
         <section className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4">
