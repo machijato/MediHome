@@ -12,12 +12,36 @@ import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
 
+type AdPlaceholderProps = {
+  orientation: 'vertical' | 'horizontal';
+  className?: string;
+};
+
+function AdPlaceholder({ orientation, className = '' }: AdPlaceholderProps) {
+  const isVertical = orientation === 'vertical';
+
+  return (
+    <div
+      className={`rounded-3xl border-2 border-dashed border-slate-300 bg-white/90 shadow-lg shadow-slate-200/70 flex items-center justify-center text-center px-6 ${className}`}
+    >
+      <div className="space-y-3">
+        <p className="text-xs tracking-[0.3em] uppercase font-semibold text-slate-400">Reklamni prostor</p>
+        <p className="text-lg md:text-xl font-extrabold text-slate-700">OVDJE MOŽE BITI VAŠ OGLAS</p>
+        <p className="text-sm text-slate-400">{isVertical ? '300 × 600' : 'Billboard format'}</p>
+      </div>
+    </div>
+  );
+}
+
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const isTopBannerActive = true;
+  const isLeftRailAdActive = true;
+  const isRightRailAdActive = true;
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -40,7 +64,31 @@ function HomePage() {
     <div className="min-h-screen flex flex-col">
       <Navbar onPostAdClick={() => setIsModalOpen(true)} />
 
+      {isLeftRailAdActive && (
+        <aside className="hidden min-[1720px]:block fixed left-1/2 -translate-x-[822px] top-28 z-20">
+          <div className="sticky top-28">
+            <AdPlaceholder orientation="vertical" className="w-[300px] h-[600px]" />
+          </div>
+        </aside>
+      )}
+
+      {isRightRailAdActive && (
+        <aside className="hidden min-[1720px]:block fixed left-1/2 translate-x-[522px] top-28 z-20">
+          <div className="sticky top-28">
+            <AdPlaceholder orientation="vertical" className="w-[300px] h-[600px]" />
+          </div>
+        </aside>
+      )}
+
       <main className="flex-1">
+        {isTopBannerActive && (
+          <section className="pt-8 pb-4">
+            <div className="max-w-7xl mx-auto px-4">
+              <AdPlaceholder orientation="horizontal" className="w-full min-h-[240px]" />
+            </div>
+          </section>
+        )}
+
         <section className="relative py-20 overflow-hidden bg-white">
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
