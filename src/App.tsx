@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
 import { Navbar } from './Navbar';
@@ -7,7 +7,7 @@ import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
 import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
-import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
+import { TEMP_ARTICLES, TEMP_PROVIDER_LISTINGS, TEMP_SERVICE_CATEGORIES, ProviderListingCardData, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
@@ -17,23 +17,49 @@ function HomePage() {
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const [serviceCategories] = useState(TEMP_SERVICE_CATEGORIES);
+  const [providerListings, setProviderListings] = useState<ProviderListingCardData[]>(TEMP_PROVIDER_LISTINGS);
+  const [articles] = useState(TEMP_ARTICLES);
+
+  // TODO: Fetch `service_categories` from Supabase and populate `serviceCategories` state.
+  // TODO: Fetch `provider_listings` joined with `provider_profiles` and `service_categories` from Supabase.
+  // TODO: Fetch `content_items` for article previews from Supabase.
 
   const filteredProviders = useMemo(() => {
-    return providers.filter((p) => {
-      const matchesCategory = activeCategory === 'all' || p.type === activeCategory;
-      const matchesCounty = selectedCounty === 'all' || p.location.includes(selectedCounty);
+    return providerListings.filter((listing) => {
+      const matchesCategory = activeCategory === 'all' || listing.category.slug === activeCategory;
+      const matchesCounty = selectedCounty === 'all' || listing.city.includes(selectedCounty);
       const matchesSearch =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+        listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        listing.display_name.toLowerCase().includes(searchQuery.toLowerCase());
 
       return matchesCategory && matchesCounty && matchesSearch;
     });
-  }, [activeCategory, selectedCounty, searchQuery, providers]);
+  }, [activeCategory, selectedCounty, searchQuery, providerListings]);
 
-  const handleCreateListing = (newListing: Provider) => {
-    setProviders([newListing, ...providers]);
+  const handleCreateListing = (newListing: any) => {
+    const fallbackCategory =
+      serviceCategories.find((category) => category.slug === newListing.type) ?? serviceCategories[0];
+
+    if (!fallbackCategory) {
+      return;
+    }
+
+    const mappedListing: ProviderListingCardData = {
+      id: newListing.id ?? crypto.randomUUID(),
+      title: newListing.title || `Nova usluga: ${fallbackCategory.name}`,
+      description: newListing.description || 'Opis će biti dostupan nakon povezivanja sa Supabase bazom.',
+      display_name: newListing.name || 'Novi pružatelj usluge',
+      city: newListing.locations?.[0] || 'Grad Zagreb',
+      category: {
+        id: fallbackCategory.id,
+        name: fallbackCategory.name,
+        slug: fallbackCategory.slug
+      }
+    };
+
+    setProviderListings([mappedListing, ...providerListings]);
   };
 
   return (
@@ -47,30 +73,16 @@ function HomePage() {
 
           <div className="max-w-7xl mx-auto px-4 relative">
             <div className="max-w-3xl">
-              <motion.h1
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-5xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6"
-              >
+              <h1 className="text-5xl md:text-6xl font-extrabold text-slate-900 leading-tight mb-6">
                 Zdravstvena njega <br />
                 <span className="text-primary">u vašem domu.</span>
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-xl text-slate-500 mb-10 leading-relaxed"
-              >
+              </h1>
+              <p className="text-xl text-slate-500 mb-10 leading-relaxed">
                 Povezujemo vas s najboljim fizioterapeutima, medicinskim sestrama i dobavljačima opreme. Brzo,
                 sigurno i pouzdano.
-              </motion.p>
+              </p>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="flex flex-col sm:flex-row gap-4"
-              >
+              <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1 relative">
                   <input
                     type="text"
@@ -83,14 +95,15 @@ function HomePage() {
                 <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
                   Pretraži
                 </button>
-              </motion.div>
+              </div>
             </div>
           </div>
         </section>
 
         <CategorySection
+          categories={serviceCategories}
           activeCategory={activeCategory}
-          setActiveCategory={(id) => setActiveCategory(activeCategory === id ? 'all' : id)}
+          setActiveCategory={(slug) => setActiveCategory(activeCategory === slug ? 'all' : slug)}
         />
 
         <section className="pb-12">
@@ -147,8 +160,8 @@ function HomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
-                {filteredProviders.map((provider) => (
-                  <ListingCard key={provider.id} provider={provider} />
+                {filteredProviders.map((listing) => (
+                  <ListingCard key={listing.id} listing={listing} />
                 ))}
               </AnimatePresence>
             </div>
@@ -214,7 +227,7 @@ function HomePage() {
           </div>
         </section>
 
-        <ArticleSection />
+        <ArticleSection articles={articles} />
       </main>
 
       <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
@@ -236,10 +249,16 @@ function HomePage() {
             <div>
               <h4 className="font-bold text-slate-900 mb-6">Usluge</h4>
               <ul className="space-y-4 text-sm text-slate-500">
-                <li><button onClick={() => setActiveCategory('physio')} className="hover:text-primary transition-colors text-left">Fizikalna terapija</button></li>
-                <li><button onClick={() => setActiveCategory('nurse')} className="hover:text-primary transition-colors text-left">Medicinska njega</button></li>
-                <li><button onClick={() => setActiveCategory('equipment')} className="hover:text-primary transition-colors text-left">Najam opreme</button></li>
-                <li><button onClick={() => setActiveCategory('other')} className="hover:text-primary transition-colors text-left">Ljekarne i dućani</button></li>
+                {serviceCategories.map((category) => (
+                  <li key={category.id}>
+                    <button
+                      onClick={() => setActiveCategory(category.slug)}
+                      className="hover:text-primary transition-colors text-left"
+                    >
+                      {category.name}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
 
