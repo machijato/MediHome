@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
@@ -7,17 +7,54 @@ import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
 import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
-import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
+import { Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { supabase } from './lib/supabase';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [loading, setLoading] = useState(true);
+
+
+
+  useEffect(() => {
+    const fetchListings = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('provider_listings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching listings:', error);
+      } else {
+        const mappedListings: Provider[] = (data ?? []).map((listing) => ({
+          id: String(listing.id),
+          name: listing.title ?? 'Bez naziva',
+          type: 'other',
+          rating: 0,
+          reviewsCount: 0,
+          price: listing.price_from ? `od ${listing.price_from}€` : 'Po dogovoru',
+          location: listing.city ?? 'Lokacija nije navedena',
+          image: `https://picsum.photos/seed/listing-${listing.id}/400/300`,
+          description: listing.description ?? '',
+          tags: [],
+        }));
+
+        setProviders(mappedListings);
+      }
+
+      setLoading(false);
+    };
+
+    fetchListings();
+  }, []);
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -145,15 +182,21 @@ function HomePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              <AnimatePresence mode="popLayout">
-                {filteredProviders.map((provider) => (
-                  <ListingCard key={provider.id} provider={provider} />
-                ))}
-              </AnimatePresence>
-            </div>
+            {loading ? (
+              <div className="text-center py-20">
+                <p className="text-slate-500">Učitavanje...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <AnimatePresence mode="popLayout">
+                  {filteredProviders.map((provider) => (
+                    <ListingCard key={provider.id} provider={provider} />
+                  ))}
+                </AnimatePresence>
+              </div>
+            )}
 
-            {filteredProviders.length === 0 && (
+            {!loading && filteredProviders.length === 0 && (
               <div className="text-center py-20">
                 <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Filter className="w-10 h-10 text-slate-400" />
