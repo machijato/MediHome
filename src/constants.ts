@@ -73,36 +73,6 @@ export const ZUPANIJE = [
   'Grad Zagreb'
 ].sort();
 
-export const CATEGORIES = [
-  {
-    id: 'physio',
-    name: 'Fizioterapeuti',
-    desc: 'Fizikalna terapija (terapija, masaža, vježba)',
-    image: 'https://picsum.photos/seed/physio_cat/800/600',
-    color: 'text-blue-600'
-  },
-  {
-    id: 'nurse',
-    name: 'Njega u kući',
-    desc: 'Njega u kući (medicinske sestre, njega bolesnika)',
-    image: 'https://picsum.photos/seed/nurse_cat/800/600',
-    color: 'text-emerald-600'
-  },
-  {
-    id: 'equipment',
-    name: 'Najam opreme',
-    desc: 'Najam opreme (bolnička medicinska oprema i pomagala)',
-    image: 'https://picsum.photos/seed/equip_cat/800/600',
-    color: 'text-purple-600'
-  },
-  {
-    id: 'transport',
-    name: 'Sanitetski prijevoz',
-    desc: 'Sanitetski prijevoz (prijevoz bolesnika i nepokretnih osoba)',
-    image: 'https://picsum.photos/seed/transport_cat/800/600',
-    color: 'text-red-600'
-  }
-];
 
 export const MOCK_PROVIDERS: Provider[] = [
   {
