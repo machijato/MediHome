@@ -11,6 +11,7 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { ResetPassword } from './pages/ResetPassword';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -277,6 +278,10 @@ function HomePage() {
 }
 
 export default function App() {
+  if (window.location.pathname === '/reset-password') {
+    return <ResetPassword />;
+  }
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
