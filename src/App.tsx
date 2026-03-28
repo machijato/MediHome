@@ -11,6 +11,7 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { ResetLozinka } from './pages/ResetLozinka';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -283,6 +284,7 @@ export default function App() {
       <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
+      <Route path="/reset-lozinka" element={<ResetLozinka />} />
     </Routes>
   );
 }
