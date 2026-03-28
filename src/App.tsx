@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes } from 'react-router-dom';
-import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
+import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight, X, User } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
@@ -12,11 +12,62 @@ import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
 
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden"
+          >
+            <div className="flex justify-between items-center p-6 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                  <User className="w-5 h-5 text-slate-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900">Prijava</h2>
+              </div>
+              <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                <X className="w-6 h-6 text-slate-400" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-500">Prijavite se kako biste upravljali svojim oglasima i omiljenim stavkama.</p>
+              <button
+                onClick={onClose}
+                className="w-full px-4 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-colors"
+              >
+                Nastavi
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPostAdModalOpen, setIsPostAdModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
 
   const filteredProviders = useMemo(() => {
@@ -36,9 +87,12 @@ function HomePage() {
     setProviders([newListing, ...providers]);
   };
 
+  const openPostAdModal = () => setIsPostAdModalOpen(true);
+  const openAuthModal = () => setIsAuthModalOpen(true);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onPostAdClick={() => setIsModalOpen(true)} />
+      <Navbar onPostAdClick={openPostAdModal} onAuthClick={openAuthModal} />
 
       <main className="flex-1">
         <section className="relative py-20 overflow-hidden bg-white">
@@ -191,7 +245,7 @@ function HomePage() {
                   </p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-4">
                     <button
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={openPostAdModal}
                       className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                     >
                       <PlusCircle className="w-5 h-5" />
@@ -217,7 +271,8 @@ function HomePage() {
         <ArticleSection />
       </main>
 
-      <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
+      <CreateListingModal isOpen={isPostAdModalOpen} onClose={() => setIsPostAdModalOpen(false)} onSubmit={handleCreateListing} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4">
