@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
@@ -7,6 +7,8 @@ import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
 import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
+import { AuthModal } from './AuthModal';
+import { supabase } from './lib/supabase';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
@@ -17,7 +19,10 @@ function HomePage() {
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [authMessage, setAuthMessage] = useState('');
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -36,9 +41,65 @@ function HomePage() {
     setProviders([newListing, ...providers]);
   };
 
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchCurrentUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!mounted) return;
+
+      if (error) {
+        setCurrentUser(null);
+        return;
+      }
+
+      setCurrentUser(data.user ?? null);
+    };
+
+    fetchCurrentUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setCurrentUser(session?.user ?? null);
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleAuthSuccess = (user: any) => {
+    setCurrentUser(user);
+    setIsAuthModalOpen(false);
+    setAuthMessage('Uspješno ste prijavljeni.');
+  };
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setAuthMessage('Odjava nije uspjela. Pokušajte ponovno.');
+      return;
+    }
+
+    setCurrentUser(null);
+    setIsAuthModalOpen(false);
+    setAuthMessage('Uspješno ste odjavljeni.');
+  };
+
+  const userLabel = currentUser?.user_metadata?.full_name || currentUser?.email || null;
+
+  useEffect(() => {
+    if (!authMessage) return;
+
+    const timeout = window.setTimeout(() => setAuthMessage(''), 3500);
+    return () => window.clearTimeout(timeout);
+  }, [authMessage]);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onPostAdClick={() => setIsModalOpen(true)} />
+      <Navbar onPostAdClick={() => setIsModalOpen(true)} onAuthClick={() => setIsAuthModalOpen(true)} userLabel={userLabel} onLogout={handleLogout} />
 
       <main className="flex-1">
         <section className="relative py-20 overflow-hidden bg-white">
@@ -217,7 +278,14 @@ function HomePage() {
         <ArticleSection />
       </main>
 
+      {authMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[120] bg-slate-900 text-white px-4 py-2 rounded-full shadow-lg text-sm">
+          {authMessage}
+        </div>
+      )}
+
       <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onAuthSuccess={handleAuthSuccess} />
 
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4">

@@ -1,11 +1,14 @@
 import React from 'react';
-import { Search, MapPin, User, Menu, Heart, PlusCircle } from 'lucide-react';
+import { MapPin, User, Menu, PlusCircle, LogOut } from 'lucide-react';
 
 interface NavbarProps {
   onPostAdClick: () => void;
+  onAuthClick: () => void;
+  userLabel: string | null;
+  onLogout: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onAuthClick, userLabel, onLogout }) => {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,17 +23,37 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onPostAdClick}
               className="hidden lg:flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-full transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
             >
               <PlusCircle className="w-5 h-5" />
               Objavi oglas
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors">
-              <User className="w-5 h-5" />
-              <span className="font-medium hidden sm:block">Prijava</span>
-            </button>
+
+            {!userLabel ? (
+              <button
+                onClick={onAuthClick}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors"
+              >
+                <User className="w-5 h-5" />
+                <span className="font-medium hidden sm:block">Prijava</span>
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="hidden sm:flex items-center px-4 py-2 rounded-full bg-slate-100 text-slate-700 text-sm font-medium max-w-[220px] truncate">
+                  {userLabel}
+                </div>
+                <button
+                  onClick={onLogout}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="font-medium hidden sm:block">Odjava</span>
+                </button>
+              </div>
+            )}
+
             <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
               <MapPin className="w-6 h-6" />
             </button>
