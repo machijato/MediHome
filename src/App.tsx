@@ -36,9 +36,13 @@ function HomePage() {
     setProviders([newListing, ...providers]);
   };
 
+  const handleOpenAuthModal = () => {
+    setIsModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onPostAdClick={() => setIsModalOpen(true)} />
+      <Navbar onPostAdClick={() => setIsModalOpen(true)} onAuthClick={handleOpenAuthModal} />
 
       <main className="flex-1">
         <section className="relative py-20 overflow-hidden bg-white">
