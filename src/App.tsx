@@ -54,9 +54,19 @@ function HomePage() {
     setProviders([newListing, ...providers]);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onPostAdClick={() => setIsModalOpen(true)} onLoginClick={() => setIsAuthOpen(true)} user={user} />
+      <Navbar
+        onPostAdClick={() => setIsModalOpen(true)}
+        onLoginClick={() => setIsAuthOpen(true)}
+        onLogoutClick={handleLogout}
+        user={user}
+      />
 
       <main className="flex-1">
         <section className="relative py-20 overflow-hidden bg-white">

@@ -4,10 +4,11 @@ import { MapPin, User, Menu, PlusCircle } from 'lucide-react';
 interface NavbarProps {
   onPostAdClick: () => void;
   onLoginClick: () => void;
+  onLogoutClick: () => void;
   user?: any;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, user }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onLogoutClick, user }) => {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -30,8 +31,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, use
               Objavi oglas
             </button>
             {user ? (
-              <div className="flex items-center gap-2 px-4 py-2 bg-slate-200 rounded-full">
+              <div className="flex items-center gap-3 px-4 py-2 bg-slate-200 rounded-full">
                 <span className="text-sm font-medium">{user.user_metadata?.full_name || user.email}</span>
+                <button
+                  onClick={onLogoutClick}
+                  className="text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
+                >
+                  Odjava
+                </button>
               </div>
             ) : (
               <button
