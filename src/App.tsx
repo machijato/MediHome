@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
@@ -11,12 +11,15 @@ import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { ResetPassword } from './pages/ResetPassword';
+import { AuthModal } from './components/AuthModal';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
 
   const filteredProviders = useMemo(() => {
@@ -35,6 +38,15 @@ function HomePage() {
   const handleCreateListing = (newListing: Provider) => {
     setProviders([newListing, ...providers]);
   };
+
+  useEffect(() => {
+    const openAuthModal = () => setIsAuthModalOpen(true);
+    window.addEventListener('open-auth-modal', openAuthModal);
+
+    return () => {
+      window.removeEventListener('open-auth-modal', openAuthModal);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -218,6 +230,7 @@ function HomePage() {
       </main>
 
       <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4">
@@ -283,6 +296,7 @@ export default function App() {
       <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
     </Routes>
   );
 }
