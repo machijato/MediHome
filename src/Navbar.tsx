@@ -31,7 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, use
             </button>
             {user ? (
               <div className="flex items-center gap-2 px-4 py-2 bg-slate-200 rounded-full">
-                <span className="text-sm font-medium">{user.email}</span>
+                <span className="text-sm font-medium">{user.user_metadata?.full_name || user.email}</span>
               </div>
             ) : (
               <button
