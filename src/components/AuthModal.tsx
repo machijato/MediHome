@@ -9,6 +9,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'auth' | 'forgot-password'>('auth');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,11 +24,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
 
   const handleClose = () => {
     resetMessages();
+    setMode('auth');
     onClose();
   };
 
   const handleTabChange = (tab: 'login' | 'register') => {
     setActiveTab(tab);
+    setMode('auth');
+    resetMessages();
+  };
+
+  const handleForgotPasswordMode = () => {
+    setMode('forgot-password');
+    setPassword('');
+    resetMessages();
+  };
+
+  const handleBackToLogin = () => {
+    setMode('auth');
+    setActiveTab('login');
     resetMessages();
   };
 
@@ -42,6 +57,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
     setLoading(true);
 
     try {
+      if (mode === 'forgot-password') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + '/reset-password',
+        });
+
+        if (error) {
+          const isRateLimitError =
+            error.message.toLowerCase().includes('rate limit') || error.message.toLowerCase().includes('too many');
+          if (isRateLimitError) {
+            setErrorMessage('Previše zahtjeva u kratkom vremenu. Pričekajte nekoliko minuta i pokušajte ponovno.');
+          } else {
+            setErrorMessage('Došlo je do greške. Pokušajte ponovno.');
+          }
+          return;
+        }
+
+        setSuccessMessage('Ako račun postoji, poslali smo upute za reset lozinke.');
+        return;
+      }
+
       if (activeTab === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -97,7 +132,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
 
       <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">Prijava</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{mode === 'forgot-password' ? 'Reset lozinke' : 'Prijava'}</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -108,29 +143,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-slate-100 rounded-xl">
-          <button
-            type="button"
-            onClick={() => handleTabChange('login')}
-            className={`py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
-              activeTab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Prijava
-          </button>
-          <button
-            type="button"
-            onClick={() => handleTabChange('register')}
-            className={`py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
-              activeTab === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            Registracija
-          </button>
-        </div>
+        {mode === 'auth' && (
+          <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-slate-100 rounded-xl">
+            <button
+              type="button"
+              onClick={() => handleTabChange('login')}
+              className={`py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Prijava
+            </button>
+            <button
+              type="button"
+              onClick={() => handleTabChange('register')}
+              className={`py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
+                activeTab === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Registracija
+            </button>
+          </div>
+        )}
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {activeTab === 'register' && (
+          {mode === 'auth' && activeTab === 'register' && (
             <div>
               <label htmlFor="auth-full-name" className="block text-sm font-medium text-slate-700 mb-1">
                 Ime i prezime
@@ -160,19 +197,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
             />
           </div>
 
-          <div>
-            <label htmlFor="auth-password" className="block text-sm font-medium text-slate-700 mb-1">
-              Lozinka
-            </label>
-            <input
-              id="auth-password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
+          {mode === 'auth' && (
+            <div>
+              <label htmlFor="auth-password" className="block text-sm font-medium text-slate-700 mb-1">
+                Lozinka
+              </label>
+              <input
+                id="auth-password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          )}
+
+          {mode === 'auth' && activeTab === 'login' && (
+            <button
+              type="button"
+              onClick={handleForgotPasswordMode}
+              className="text-sm text-slate-600 hover:text-primary transition-colors"
+            >
+              Zaboravljena lozinka?
+            </button>
+          )}
 
           {errorMessage && <p className="text-sm font-medium text-red-600">{errorMessage}</p>}
           {successMessage && <p className="text-sm font-medium text-green-600">{successMessage}</p>}
@@ -182,8 +231,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
             disabled={loading}
             className="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Učitavanje...' : activeTab === 'login' ? 'Prijava' : 'Registracija'}
+            {loading ? 'Učitavanje...' : mode === 'forgot-password' ? 'Pošalji upute' : activeTab === 'login' ? 'Prijava' : 'Registracija'}
           </button>
+
+          {mode === 'forgot-password' && (
+            <button
+              type="button"
+              onClick={handleBackToLogin}
+              className="w-full text-sm text-slate-600 hover:text-primary transition-colors"
+            >
+              Povratak na prijavu
+            </button>
+          )}
         </form>
       </div>
     </div>

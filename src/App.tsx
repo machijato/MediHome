@@ -13,6 +13,7 @@ import { supabase } from './lib/supabase';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
+import { ResetPassword } from './pages/ResetPassword';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -312,6 +313,7 @@ export default function App() {
       <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
     </Routes>
   );
 }
