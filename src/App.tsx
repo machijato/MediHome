@@ -7,6 +7,7 @@ import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
 import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
+import AuthModal from "./components/AuthModal";
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
