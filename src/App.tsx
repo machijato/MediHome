@@ -12,11 +12,37 @@ import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
 
+
+interface AuthModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Prijava</h2>
+          <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-700">
+            ×
+          </button>
+        </div>
+        <p className="text-slate-600">Prijava je trenutno u izradi.</p>
+      </div>
+    </div>
+  );
+};
+
+
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
 
   const filteredProviders = useMemo(() => {
@@ -38,7 +64,7 @@ function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onPostAdClick={() => setIsModalOpen(true)} />
+      <Navbar onPostAdClick={() => setIsModalOpen(true)} onLoginClick={() => setIsAuthOpen(true)} />
 
       <main className="flex-1">
         <section className="relative py-20 overflow-hidden bg-white">
@@ -218,6 +244,7 @@ function HomePage() {
       </main>
 
       <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
+      <AuthModal open={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4">
