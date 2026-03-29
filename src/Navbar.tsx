@@ -1,11 +1,12 @@
 import React from 'react';
-import { Search, MapPin, User, Menu, Heart, PlusCircle } from 'lucide-react';
+import { MapPin, User, Menu, PlusCircle } from 'lucide-react';
 
 interface NavbarProps {
   onPostAdClick: () => void;
+  onLoginClick: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick }) => {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -20,14 +21,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={onPostAdClick}
               className="hidden lg:flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-full transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
             >
               <PlusCircle className="w-5 h-5" />
               Objavi oglas
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors">
+            <button
+              onClick={onLoginClick}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors"
+            >
               <User className="w-5 h-5" />
               <span className="font-medium hidden sm:block">Prijava</span>
             </button>
