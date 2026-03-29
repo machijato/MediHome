@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface AuthModalProps {
   open: boolean;
   onClose: () => void;
+  isRecovery?: boolean;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery = false }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  const [mode, setMode] = useState<'auth' | 'forgot-password'>('auth');
+  const [mode, setMode] = useState<'auth' | 'forgot-password' | 'recovery'>('auth');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -22,9 +24,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
     setSuccessMessage('');
   };
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (isRecovery) {
+      setMode('recovery');
+      setPassword('');
+      setConfirmPassword('');
+      resetMessages();
+      return;
+    }
+
+    setMode('auth');
+    setPassword('');
+    setConfirmPassword('');
+    resetMessages();
+  }, [isRecovery, open]);
+
   const handleClose = () => {
     resetMessages();
     setMode('auth');
+    setConfirmPassword('');
     onClose();
   };
 
@@ -57,6 +79,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
     setLoading(true);
 
     try {
+      if (mode === 'recovery') {
+        if (password.length < 6) {
+          setErrorMessage('Lozinka mora imati najmanje 6 znakova.');
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setErrorMessage('Lozinke se ne podudaraju.');
+          return;
+        }
+
+        const { error } = await supabase.auth.updateUser({
+          password,
+        });
+
+        if (error) {
+          setErrorMessage(error.message);
+          return;
+        }
+
+        setSuccessMessage('Lozinka uspješno promijenjena');
+        setPassword('');
+        setConfirmPassword('');
+        return;
+      }
+
       if (mode === 'forgot-password') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin + '/reset-password',
@@ -132,7 +180,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
 
       <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-slate-900">{mode === 'forgot-password' ? 'Reset lozinke' : 'Prijava'}</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{mode === 'auth' ? 'Prijava' : 'Reset lozinke'}</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -183,19 +231,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
             </div>
           )}
 
-          <div>
-            <label htmlFor="auth-email" className="block text-sm font-medium text-slate-700 mb-1">
-              Email
-            </label>
-            <input
-              id="auth-email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="unesite@email.hr"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
+          {mode !== 'recovery' && (
+            <div>
+              <label htmlFor="auth-email" className="block text-sm font-medium text-slate-700 mb-1">
+                Email
+              </label>
+              <input
+                id="auth-email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="unesite@email.hr"
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+          )}
 
           {mode === 'auth' && (
             <div>
@@ -211,6 +261,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
+          )}
+
+          {mode === 'recovery' && (
+            <>
+              <div>
+                <label htmlFor="auth-new-password" className="block text-sm font-medium text-slate-700 mb-1">
+                  Nova lozinka
+                </label>
+                <input
+                  id="auth-new-password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="auth-confirm-password" className="block text-sm font-medium text-slate-700 mb-1">
+                  Potvrdite novu lozinku
+                </label>
+                <input
+                  id="auth-confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            </>
           )}
 
           {mode === 'auth' && activeTab === 'login' && (
@@ -231,10 +313,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
             disabled={loading}
             className="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Učitavanje...' : mode === 'forgot-password' ? 'Pošalji upute' : activeTab === 'login' ? 'Prijava' : 'Registracija'}
+            {loading
+              ? 'Učitavanje...'
+              : mode === 'recovery'
+                ? 'Spremi novu lozinku'
+                : mode === 'forgot-password'
+                  ? 'Pošalji upute'
+                  : activeTab === 'login'
+                    ? 'Prijava'
+                    : 'Registracija'}
           </button>
 
-          {mode === 'forgot-password' && (
+          {mode === 'forgot-password' && !isRecovery && (
             <button
               type="button"
               onClick={handleBackToLogin}

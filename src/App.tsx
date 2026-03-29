@@ -21,8 +21,27 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+
+
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (!hash) {
+      return;
+    }
+
+    const hashParams = new URLSearchParams(hash.slice(1));
+    const hashType = hashParams.get('type');
+
+    if (hashType === 'recovery') {
+      setIsRecoveryFlow(true);
+      setIsAuthOpen(true);
+      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -247,7 +266,14 @@ function HomePage() {
       </main>
 
       <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
-      <AuthModal open={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
+      <AuthModal
+        open={isAuthOpen}
+        isRecovery={isRecoveryFlow}
+        onClose={() => {
+          setIsAuthOpen(false);
+          setIsRecoveryFlow(false);
+        }}
+      />
 
       <footer className="bg-white border-t border-slate-200 py-12">
         <div className="max-w-7xl mx-auto px-4">
