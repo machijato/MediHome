@@ -53,10 +53,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose }) => {
           return;
         }
 
+        setSuccessMessage('Uspješno ste prijavljeni.');
         setEmail('');
         setPassword('');
         setFullName('');
-        handleClose();
         return;
       }
 

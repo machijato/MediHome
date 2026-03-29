@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
@@ -9,6 +9,7 @@ import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
 import { AuthModal } from './components/AuthModal';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
+import { supabase } from './lib/supabase';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
@@ -19,7 +20,22 @@ function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
@@ -40,7 +56,7 @@ function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar onPostAdClick={() => setIsModalOpen(true)} onLoginClick={() => setIsAuthOpen(true)} />
+      <Navbar onPostAdClick={() => setIsModalOpen(true)} onLoginClick={() => setIsAuthOpen(true)} user={user} />
 
       <main className="flex-1">
         <section className="relative py-20 overflow-hidden bg-white">
