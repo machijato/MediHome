@@ -143,23 +143,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
+            },
           },
-        },
-      });
+        });
 
-      if (error) {
-        setErrorMessage(`Greška pri registraciji: ${error.message}`);
-        return;
+        console.log('SIGNUP RESPONSE:', data, error);
+
+        if (error) {
+          setErrorMessage(error.message);
+          setLoading(false);
+          return;
+        }
+
+        setSuccessMessage('Provjeri email za potvrdu računa.');
+        setPassword('');
+        setLoading(false);
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : 'Došlo je do neočekivane greške.');
+        setLoading(false);
+      } finally {
+        setLoading(false);
       }
-
-      setSuccessMessage('Provjerite email za potvrdu računa.');
-      setPassword('');
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Došlo je do neočekivane greške.');
     } finally {
       setLoading(false);
     }
