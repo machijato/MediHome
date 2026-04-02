@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 export const ResetPassword: React.FC = () => {
@@ -7,6 +7,26 @@ export const ResetPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    const initRecoverySession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSessionFromUrl({
+          storeSession: true,
+        });
+
+        console.log('RECOVERY SESSION:', { data, error });
+
+        if (error) {
+          console.error('RECOVERY SESSION ERROR:', error);
+        }
+      } catch (error) {
+        console.error('RECOVERY SESSION EXCEPTION:', error);
+      }
+    };
+
+    initRecoverySession();
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
