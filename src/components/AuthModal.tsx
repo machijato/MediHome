@@ -107,7 +107,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
 
       if (mode === 'forgot-password') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: 'https://medi-home-apjtiwjt6-machijatos-projects.vercel.app/reset-password',
+          redirectTo: 'https://medi-home-chi.vercel.app/reset-password',
         });
 
         if (error) {
