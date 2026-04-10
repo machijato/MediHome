@@ -6,7 +6,7 @@ on:
       - main
   push:
     branches:
-      - chore/add-github-actions-ci
+      - main
 
 jobs:
   ci:
