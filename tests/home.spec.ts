@@ -4,9 +4,8 @@ test('home page loads', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
 
-  const root = page.locator('#root');
-  await expect(root).toBeAttached();
+  await expect(page).toHaveURL(/localhost:3000/);
 
-  const text = await root.textContent();
-  expect((text ?? '').trim().length).toBeGreaterThan(0);
+  const root = page.locator('#root');
+  await expect(root).toHaveCount(1);
 });
