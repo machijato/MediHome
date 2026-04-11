@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 test('home page loads on Vercel preview', async ({ page }) => {
-  await page.goto('/');
+  const response = await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
 
-  await expect(page).toHaveURL(/vercel\.app/);
+  expect(response).not.toBeNull();
+  expect(response?.ok()).toBeTruthy();
 
-  const root = page.locator('#root');
-  await expect(root).toHaveCount(1);
+  await expect(page).toHaveURL(/vercel\.app/);
 });
