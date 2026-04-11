@@ -1,7 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-test('home page body is visible', async ({ page }) => {
+test('home page loads', async ({ page }) => {
   await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
 
-  await expect(page.locator('body')).toBeVisible();
+  const root = page.locator('#root');
+  await expect(root).toBeAttached();
+
+  const text = await root.textContent();
+  expect((text ?? '').trim().length).toBeGreaterThan(0);
 });
