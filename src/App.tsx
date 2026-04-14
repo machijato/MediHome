@@ -25,6 +25,69 @@ function HomePage() {
   const [user, setUser] = useState<any>(null);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
 
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const { data: categoriesData, error: categoriesError } = await supabase
+          .from('service_categories')
+          .select('id, slug');
+
+        if (categoriesError) {
+          throw categoriesError;
+        }
+
+        const categorySlugById = new Map(
+          (categoriesData ?? []).map((category) => [category.id, category.slug]),
+        );
+
+        const mapCategoryToProviderType = (categoryId: string): Provider['type'] => {
+          const slug = categorySlugById.get(categoryId);
+
+          if (slug === 'physio') return 'physio';
+          if (slug === 'nurse') return 'nurse';
+          if (slug === 'equipment') return 'equipment';
+          if (slug === 'transport') return 'transport';
+
+          return 'other';
+        };
+
+        const { data: listingsData, error: listingsError } = await supabase
+          .from('provider_listings')
+          .select('id, title, description, city, price_from, price_unit, category_id, status')
+          .eq('status', 'approved');
+
+        if (listingsError) {
+          throw listingsError;
+        }
+
+        if (!listingsData || listingsData.length === 0) {
+          setProviders(MOCK_PROVIDERS);
+          return;
+        }
+
+        const mappedProviders: Provider[] = listingsData.map((listing) => ({
+          id: String(listing.id),
+          name: listing.title ?? 'Bez naslova',
+          type: mapCategoryToProviderType(String(listing.category_id)),
+          rating: 5,
+          reviewsCount: 0,
+          price: [listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru',
+          location: listing.city ?? 'Nepoznato',
+          image: 'https://picsum.photos/seed/provider/400/300',
+          description: listing.description ?? '',
+          tags: [],
+        }));
+
+        setProviders(mappedProviders);
+      } catch (error) {
+        console.error('Greška pri dohvaćanju oglasa iz Supabasea:', error);
+        setProviders(MOCK_PROVIDERS);
+      }
+    };
+
+    fetchProviders();
+  }, []);
+
 
   useEffect(() => {
     const hash = window.location.hash;
