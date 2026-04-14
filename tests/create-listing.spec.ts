@@ -2,8 +2,13 @@ import { test, expect } from '@playwright/test';
 
 test('user can go through Objavi oglas flow', async ({ page }) => {
   await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
 
-  await page.getByTestId('open-create-listing').click();
+  const openCreateListing = page
+    .getByTestId('open-create-listing')
+    .filter({ hasText: 'Objavi svoj oglas besplatno' });
+  await expect(openCreateListing).toBeVisible();
+  await openCreateListing.click();
 
   const modal = page.getByTestId('create-listing-modal');
   await expect(modal).toBeVisible();
