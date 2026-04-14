@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
 import { ZUPANIJE } from './constants';
+import { supabase } from './lib/supabase';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface CreateListingModalProps {
 
 export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [step, setStep] = useState(1);
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type: 'physio',
@@ -67,18 +70,49 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     setFormData({ ...formData, [field]: newList });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    setSubmitError('');
+    setIsSubmitting(true);
+
+    const categoryIdByType: Record<string, string> = {
+      physio: '11111111-1111-1111-1111-111111111111',
+      nurse: '22222222-2222-2222-2222-222222222222',
+      equipment: '33333333-3333-3333-3333-333333333333',
+      transport: '44444444-4444-4444-4444-444444444444',
+    };
+
+    const priceFrom = Number.parseFloat(formData.price.replace(',', '.'));
+
+    const { error } = await supabase.from('provider_listings').insert({
+      title: formData.name,
+      description: formData.description,
+      city: formData.locations[0] || '',
+      price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
+      price_unit: 'EUR',
+      category_id: categoryIdByType[formData.type] || categoryIdByType.physio,
+      provider_profile_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      status: 'approved',
+    });
+
+    if (error) {
+      console.error('Greška pri unosu oglasa u Supabase:', error);
+      setSubmitError('Došlo je do greške pri spremanju oglasa. Pokušajte ponovno.');
+      setIsSubmitting(false);
+      return;
+    }
+
     onSubmit({
       ...formData,
       id: Math.random().toString(36).substr(2, 9),
       rating: 5.0,
       reviewsCount: 0,
-      location: formData.locations.join(', '), // For display in mock
+      location: formData.locations.join(', '),
       image: 'https://picsum.photos/seed/user/400/300',
       tags: [...formData.specialization, ...formData.methods, ...formData.services, ...formData.workTypes]
     });
+
     onClose();
+    window.location.reload();
   };
 
   const nextStep = () => {
@@ -368,6 +402,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
               >
                 Odustani
               </button>
+              {submitError && (
+                <p className="text-sm text-red-600">{submitError}</p>
+              )}
               <div className="flex gap-3">
                 {step > 1 && (
                   <button
@@ -389,9 +426,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 ) : (
                   <button
                     onClick={handleSubmit}
+                    disabled={isSubmitting}
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   >
-                    Objavi oglas
+                    {isSubmitting ? 'Spremanje...' : 'Objavi oglas'}
                   </button>
                 )}
               </div>
