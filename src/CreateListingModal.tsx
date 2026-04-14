@@ -147,6 +147,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            data-testid="create-listing-modal"
             className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Header */}
@@ -309,6 +310,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                         type="text"
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
                         placeholder="npr. Ivan Horvat"
+                        data-testid="input-title"
                         value={formData.name}
                         onChange={e => setFormData({...formData, name: e.target.value})}
                       />
@@ -324,6 +326,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                           type="text"
                           className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
                           placeholder={formData.type === 'equipment' ? '5€/dan' : '30€/h'}
+                          data-testid="input-price"
                           value={formData.price}
                           onChange={e => setFormData({...formData, price: e.target.value})}
                         />
@@ -333,7 +336,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700 block mb-2">Lokacije (Županije - označite sve gdje nudite uslugu)</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div
+                      data-testid="input-city"
+                      className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-4 bg-slate-50 border border-slate-200 rounded-xl"
+                    >
                       {ZUPANIJE.map(z => (
                         <label key={z} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors">
                           <input
@@ -385,6 +391,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                       rows={4}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 resize-none"
                       placeholder="Detaljno opišite što nudite..."
+                      data-testid="input-description"
                       value={formData.description}
                       onChange={e => setFormData({...formData, description: e.target.value})}
                     />
@@ -403,7 +410,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 Odustani
               </button>
               {submitError && (
-                <p className="text-sm text-red-600">{submitError}</p>
+                <p data-testid="error-message" className="text-sm text-red-600">{submitError}</p>
               )}
               <div className="flex gap-3">
                 {step > 1 && (
@@ -426,6 +433,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 ) : (
                   <button
                     onClick={handleSubmit}
+                    data-testid="submit-listing"
                     disabled={isSubmitting}
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   >
