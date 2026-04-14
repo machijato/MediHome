@@ -134,7 +134,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+        <div
+          data-testid="create-listing-modal"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
+        >
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -307,6 +310,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Ime i prezime / Naziv</label>
                       <input
+                        data-testid="listing-name"
                         required
                         type="text"
                         data-testid="input-title"
@@ -323,6 +327,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                       <div className="relative">
                         <Euro className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
+                          data-testid="listing-price"
                           required
                           type="text"
                           data-testid="input-price"
@@ -361,6 +366,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                       <div className="relative">
                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
+                          data-testid="listing-phone"
                           required
                           type="tel"
                           className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
@@ -375,6 +381,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                       <div className="relative">
                         <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
+                          data-testid="listing-website"
                           type="url"
                           className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
                           placeholder="https://www.vasastranica.hr"
@@ -388,6 +395,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700">Opis usluge</label>
                     <textarea
+                      data-testid="listing-description"
                       required
                       rows={4}
                       data-testid="input-description"
@@ -411,7 +419,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 Odustani
               </button>
               {submitError && (
-                <p className="text-sm text-red-600" data-testid="error-message">{submitError}</p>
+                <p data-testid="error-message" className="text-sm text-red-600">{submitError}</p>
               )}
               {!submitError && <p className="sr-only" data-testid="success-message">success</p>}
               <div className="flex gap-3">
