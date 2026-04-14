@@ -303,6 +303,7 @@ function HomePage() {
                   <div className="flex flex-wrap justify-center md:justify-start gap-4">
                     <button
                       onClick={() => setIsModalOpen(true)}
+                      data-testid="open-create-listing-cta"
                       className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2"
                     >
                       <PlusCircle className="w-5 h-5" />
