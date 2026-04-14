@@ -25,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
           <div className="flex items-center gap-4">
             <button
               onClick={onPostAdClick}
+              data-testid="open-create-listing"
               className="hidden lg:flex items-center gap-2 px-6 py-2.5 bg-primary text-white font-bold rounded-full transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:translate-y-0"
             >
               <PlusCircle className="w-5 h-5" />
