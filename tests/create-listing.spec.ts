@@ -6,7 +6,8 @@ test('user can go through Objavi oglas flow', async ({ page }) => {
 
   const openCreateListing = page
     .getByTestId('open-create-listing')
-    .filter({ hasText: 'Objavi svoj oglas besplatno' });
+    .filter({ visible: true })
+    .first();
   await expect(openCreateListing).toBeVisible();
   await openCreateListing.click();
 
