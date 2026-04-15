@@ -9,30 +9,15 @@ test('home page loads correctly', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('networkidle');
 
-  console.log('URL:', page.url());
-  console.log('TITLE:', await page.title());
-
-  const testIds = await page.locator('[data-testid]').allTextContents();
-  console.log('ALL TESTIDS:', testIds);
-
-  const primary = page.locator('[data-testid="open-create-listing"]');
-  const cta = page.locator('[data-testid="open-create-listing-cta"]');
-
-  console.log('PRIMARY COUNT:', await primary.count());
-  console.log('CTA COUNT:', await cta.count());
-
-  await page.screenshot({ path: 'homepage-debug.png', fullPage: true });
-
-  const ctaOpener = page.locator('[data-testid="open-create-listing-cta"]').first();
   const navbarOpener = page.locator('[data-testid="open-create-listing"]').first();
+  const ctaOpener = page.locator('[data-testid="open-create-listing-cta"]').first();
 
-  const useCtaOpener = (await ctaOpener.count()) > 0 && await ctaOpener.isVisible();
-  const opener = useCtaOpener ? ctaOpener : navbarOpener;
-
-  console.log(`Using modal opener: ${useCtaOpener ? 'open-create-listing-cta' : 'open-create-listing'}`);
+  const useNavbarOpener = (await navbarOpener.count()) > 0 && await navbarOpener.isVisible();
+  const opener = useNavbarOpener ? navbarOpener : ctaOpener;
 
   await expect(opener).toBeVisible();
   await opener.click();
+
   await expect(page.getByRole('heading', { name: 'Objavi oglas' })).toBeVisible();
 
   const html = await page.content();
