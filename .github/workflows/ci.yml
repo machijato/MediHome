@@ -26,3 +26,5 @@ jobs:
       - run: npx playwright install chromium
 
       - run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: https://medi-home-chi.vercel.app/
