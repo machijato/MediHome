@@ -6,6 +6,23 @@ test('home page loads correctly', async ({ page }) => {
 
   await expect(page).toHaveURL(/vercel\.app/);
 
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+
+  console.log('URL:', page.url());
+  console.log('TITLE:', await page.title());
+
+  const testIds = await page.locator('[data-testid]').allTextContents();
+  console.log('ALL TESTIDS:', testIds);
+
+  const primary = page.locator('[data-testid="open-create-listing"]');
+  const cta = page.locator('[data-testid="open-create-listing-cta"]');
+
+  console.log('PRIMARY COUNT:', await primary.count());
+  console.log('CTA COUNT:', await cta.count());
+
+  await page.screenshot({ path: 'homepage-debug.png', fullPage: true });
+
   const ctaOpener = page.locator('[data-testid="open-create-listing-cta"]').first();
   const navbarOpener = page.locator('[data-testid="open-create-listing"]').first();
 
