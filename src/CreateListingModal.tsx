@@ -176,6 +176,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     {categories.map((cat) => (
                       <button
                         key={cat.id}
+                        data-testid={`category-${cat.id}`}
                         onClick={() => {
                           setFormData({ ...formData, type: cat.id });
                           nextStep();

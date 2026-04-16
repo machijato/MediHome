@@ -19,6 +19,8 @@ test('home page loads correctly', async ({ page }) => {
   await opener.click();
 
   await expect(page.getByRole('heading', { name: 'Objavi oglas' })).toBeVisible();
+  await page.locator('[data-testid="category-physio"]').click();
+  await expect(page.getByRole('heading', { name: 'Tip rada (moguće označiti oba)' })).toBeVisible();
 
   const html = await page.content();
   expect(html.length).toBeGreaterThan(100);
