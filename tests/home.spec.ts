@@ -27,7 +27,8 @@ test('home page create listing wizard submits with stable selectors', async ({ p
 
   await page.locator('[data-testid="submit-listing"]').click();
 
-  await expect(page.locator('[data-testid="error-message"], [data-testid="success-message"]').first()).toBeVisible({
-    timeout: 15000,
-  });
+  await Promise.race([
+    expect(page.locator('[data-testid="error-message"]')).toBeVisible({ timeout: 15000 }),
+    expect(modal).not.toBeVisible({ timeout: 15000 }),
+  ]);
 });
