@@ -7,7 +7,7 @@ import { supabase } from './lib/supabase';
 interface CreateListingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: any) => void;
+  onSubmit: () => Promise<void> | void;
 }
 
 export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, onClose, onSubmit }) => {
@@ -101,18 +101,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       return;
     }
 
-    onSubmit({
-      ...formData,
-      id: Math.random().toString(36).substr(2, 9),
-      rating: 5.0,
-      reviewsCount: 0,
-      location: formData.locations.join(', '),
-      image: 'https://picsum.photos/seed/user/400/300',
-      tags: [...formData.specialization, ...formData.methods, ...formData.services, ...formData.workTypes]
-    });
-
+    await onSubmit();
     onClose();
-    window.location.reload();
   };
 
   const nextStep = () => {
