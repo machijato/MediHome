@@ -147,6 +147,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            data-testid="create-listing-modal"
             className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
           >
             {/* Header */}
@@ -172,10 +173,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
               {step === 1 && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-bold text-slate-900">Odaberite kategoriju</h3>
-                  <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 gap-4" data-testid="category-selection">
                     {categories.map((cat) => (
                       <button
                         key={cat.id}
+                        data-testid={`category-${cat.id}`}
                         onClick={() => {
                           setFormData({ ...formData, type: cat.id });
                           nextStep();
@@ -305,6 +307,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">Ime i prezime / Naziv</label>
                       <input
+                        data-testid="input-title"
                         required
                         type="text"
                         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
@@ -320,6 +323,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                       <div className="relative">
                         <Euro className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
+                          data-testid="input-price"
                           required
                           type="text"
                           className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
@@ -333,7 +337,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700 block mb-2">Lokacije (Županije - označite sve gdje nudite uslugu)</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-4 bg-slate-50 border border-slate-200 rounded-xl" data-testid="input-city">
                       {ZUPANIJE.map(z => (
                         <label key={z} className="flex items-center gap-3 p-2 hover:bg-white rounded-lg cursor-pointer transition-colors">
                           <input
@@ -381,6 +385,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                   <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-700">Opis usluge</label>
                     <textarea
+                      data-testid="input-description"
                       required
                       rows={4}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 resize-none"
@@ -403,7 +408,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 Odustani
               </button>
               {submitError && (
-                <p className="text-sm text-red-600">{submitError}</p>
+                <p className="text-sm text-red-600" data-testid="error-message">{submitError}</p>
               )}
               <div className="flex gap-3">
                 {step > 1 && (
@@ -419,6 +424,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                   <button
                     type="button"
                     onClick={nextStep}
+                    data-testid="next-step"
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   >
                     Dalje
@@ -427,6 +433,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting}
+                    data-testid="submit-listing"
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   >
                     {isSubmitting ? 'Spremanje...' : 'Objavi oglas'}
