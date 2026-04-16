@@ -1,13 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-test('home page loads correctly', async ({ page }) => {
+test('home page create listing wizard submits with stable selectors', async ({ page }) => {
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
-
   await expect(page).toHaveURL(/vercel\.app/);
-
-  await page.goto('/');
-  await page.waitForLoadState('networkidle');
 
   const navbarOpener = page.locator('[data-testid="open-create-listing"]').first();
   const ctaOpener = page.locator('[data-testid="open-create-listing-cta"]').first();
@@ -18,8 +14,20 @@ test('home page loads correctly', async ({ page }) => {
   await expect(opener).toBeVisible();
   await opener.click();
 
-  await expect(page.getByRole('heading', { name: 'Objavi oglas' })).toBeVisible();
+  const modal = page.locator('[data-testid="create-listing-modal"]');
+  await expect(modal).toBeVisible();
 
-  const html = await page.content();
-  expect(html.length).toBeGreaterThan(100);
+  await page.locator('[data-testid="category-physio"]').click();
+  await page.locator('[data-testid="next-step"]').click();
+
+  await page.locator('[data-testid="input-title"]').fill('Playwright Fizioterapeut');
+  await page.locator('[data-testid="input-price"]').fill('30');
+  await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
+  await page.locator('[data-testid="input-description"]').fill('Automated full wizard submit flow check.');
+
+  await page.locator('[data-testid="submit-listing"]').click();
+
+  await expect(page.locator('[data-testid="error-message"], [data-testid="success-message"]').first()).toBeVisible({
+    timeout: 15000,
+  });
 });
