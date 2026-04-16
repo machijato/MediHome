@@ -74,14 +74,59 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     setSubmitError('');
     setIsSubmitting(true);
 
-    const categoryIdByType: Record<string, string> = {
-      physio: '11111111-1111-1111-1111-111111111111',
-      nurse: '22222222-2222-2222-2222-222222222222',
-      equipment: '33333333-3333-3333-3333-333333333333',
-      transport: '44444444-4444-4444-4444-444444444444',
-    };
-
     const priceFrom = Number.parseFloat(formData.price.replace(',', '.'));
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('Greška pri dohvaćanju prijavljenog korisnika:', userError);
+      setSubmitError('Došlo je do greške pri provjeri prijave. Pokušajte ponovno.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!userData.user) {
+      setSubmitError('Za objavu oglasa morate biti prijavljeni.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { data: providerProfile, error: providerProfileError } = await supabase
+      .from('provider_profiles')
+      .select('id')
+      .eq('user_id', userData.user.id)
+      .maybeSingle();
+
+    if (providerProfileError) {
+      console.error('Greška pri dohvaćanju provider profila:', providerProfileError);
+      setSubmitError('Došlo je do greške pri pronalasku profila pružatelja usluge.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!providerProfile?.id) {
+      setSubmitError('Vaš korisnički račun još nema profil pružatelja usluge.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    const { data: category, error: categoryError } = await supabase
+      .from('service_categories')
+      .select('id')
+      .eq('slug', formData.type)
+      .maybeSingle();
+
+    if (categoryError) {
+      console.error('Greška pri dohvaćanju kategorije:', categoryError);
+      setSubmitError('Došlo je do greške pri odabiru kategorije. Pokušajte ponovno.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!category?.id) {
+      setSubmitError('Odabrana kategorija trenutno nije dostupna.');
+      setIsSubmitting(false);
+      return;
+    }
 
     const { error } = await supabase.from('provider_listings').insert({
       title: formData.name,
@@ -89,8 +134,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       city: formData.locations[0] || '',
       price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
       price_unit: 'EUR',
-      category_id: categoryIdByType[formData.type] || categoryIdByType.physio,
-      provider_profile_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      category_id: category.id,
+      provider_profile_id: providerProfile.id,
       status: 'approved',
     });
 
