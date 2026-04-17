@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  deployments: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -25,13 +29,46 @@ jobs:
       
       - run: npx playwright install chromium
 
-      - name: Resolve Playwright base URL
+      - name: Resolve Playwright base URL (PR preview)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            const { owner, repo } = context.repo;
+
+            const deployments = await github.paginate(github.rest.repos.listDeployments, {
+              owner,
+              repo,
+              sha,
+              per_page: 100,
+            });
+
+            for (const deployment of deployments) {
+              const statuses = await github.paginate(github.rest.repos.listDeploymentStatuses, {
+                owner,
+                repo,
+                deployment_id: deployment.id,
+                per_page: 100,
+              });
+
+              for (const status of statuses) {
+                if (status.state !== 'success') continue;
+                const rawUrl = status.environment_url || status.target_url;
+                if (!rawUrl || !rawUrl.includes('vercel.app')) continue;
+
+                const baseUrl = rawUrl.endsWith('/') ? rawUrl : `${rawUrl}/`;
+                core.exportVariable('PLAYWRIGHT_BASE_URL', baseUrl);
+                core.info(`Resolved PLAYWRIGHT_BASE_URL=${baseUrl}`);
+                return;
+              }
+            }
+
+            core.setFailed(`Could not resolve a successful vercel.app deployment URL for SHA ${sha}.`);
+
+      - name: Resolve Playwright base URL (main)
+        if: github.event_name != 'pull_request'
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            SAFE_BRANCH_NAME="$(echo '${{ github.head_ref }}' | tr '/' '-')"
-            echo "PLAYWRIGHT_BASE_URL=https://medi-home-git-${SAFE_BRANCH_NAME}-machijato.vercel.app/" >> "$GITHUB_ENV"
-          else
-            echo "PLAYWRIGHT_BASE_URL=https://medi-home-chi.vercel.app/" >> "$GITHUB_ENV"
-          fi
+          echo "PLAYWRIGHT_BASE_URL=https://medi-home-chi.vercel.app/" >> "$GITHUB_ENV"
 
       - run: npx playwright test
