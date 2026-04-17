@@ -6,6 +6,12 @@ test('authenticated user can login, create listing, and verify listing render', 
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
 
+  const authUserChip = page.locator('[data-testid="auth-user-chip"]');
+  if (await authUserChip.count()) {
+    await page.locator('[data-testid="auth-logout-button"]').click();
+  }
+
+  await expect(page.locator('[data-testid="open-auth-modal"]')).toBeVisible({ timeout: 20000 });
   await page.locator('[data-testid="open-auth-modal"]').click();
   await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
   await page.locator('[data-testid="auth-email-input"]').fill('makiblaz@gmail.com');
