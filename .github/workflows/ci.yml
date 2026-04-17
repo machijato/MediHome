@@ -25,6 +25,13 @@ jobs:
       
       - run: npx playwright install chromium
 
+      - name: Resolve Playwright base URL
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            SAFE_BRANCH_NAME="$(echo '${{ github.head_ref }}' | tr '/' '-')"
+            echo "PLAYWRIGHT_BASE_URL=https://medi-home-git-${SAFE_BRANCH_NAME}-machijato.vercel.app/" >> "$GITHUB_ENV"
+          else
+            echo "PLAYWRIGHT_BASE_URL=https://medi-home-chi.vercel.app/" >> "$GITHUB_ENV"
+          fi
+
       - run: npx playwright test
-        env:
-          PLAYWRIGHT_BASE_URL: https://medi-home-chi.vercel.app/
