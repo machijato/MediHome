@@ -1,10 +1,23 @@
 import { test, expect } from '@playwright/test';
 
-test('home page create listing wizard submits with stable selectors', async ({ page }) => {
-  const uniqueTitle = `E2E Test Oglas ${Date.now()}`;
+test('authenticated user can login, create listing, and verify listing render', async ({ page }) => {
+  const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
 
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
+
+  await page.locator('[data-testid="open-auth-modal"]').click();
+  await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
+  await page.locator('[data-testid="auth-email-input"]').fill('makiblaz@gmail.com');
+  await page.locator('[data-testid="auth-password-input"]').fill('Maki4321');
+  await page.locator('[data-testid="auth-submit-button"]').click();
+
+  await expect(page.locator('[data-testid="auth-user-chip"]')).toBeVisible({ timeout: 20000 });
+  const authModal = page.locator('[data-testid="auth-modal"]');
+  if (await authModal.isVisible()) {
+    await page.locator('[data-testid="auth-close-button"]').click();
+    await expect(authModal).not.toBeVisible();
+  }
 
   const navbarOpener = page.locator('[data-testid="open-create-listing"]').first();
   const ctaOpener = page.locator('[data-testid="open-create-listing-cta"]').first();

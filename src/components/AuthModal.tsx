@@ -170,11 +170,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+    <div data-testid="auth-modal" className="fixed inset-0 z-50 flex items-center justify-center px-4">
       <button
         type="button"
         aria-label="Zatvori modal"
         onClick={handleClose}
+        data-testid="auth-overlay-close"
         className="absolute inset-0 bg-slate-900/50"
       />
 
@@ -184,6 +185,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
           <button
             type="button"
             onClick={handleClose}
+            data-testid="auth-close-button"
             className="p-2 rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
             aria-label="Zatvori"
           >
@@ -239,6 +241,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
               <input
                 id="auth-email"
                 type="email"
+                data-testid="auth-email-input"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="unesite@email.hr"
@@ -255,6 +258,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
               <input
                 id="auth-password"
                 type="password"
+                data-testid="auth-password-input"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 placeholder="••••••••"
@@ -305,11 +309,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
             </button>
           )}
 
-          {errorMessage && <p className="text-sm font-medium text-red-600">{errorMessage}</p>}
-          {successMessage && <p className="text-sm font-medium text-green-600">{successMessage}</p>}
+          {errorMessage && <p data-testid="auth-error-message" className="text-sm font-medium text-red-600">{errorMessage}</p>}
+          {successMessage && <p data-testid="auth-success-message" className="text-sm font-medium text-green-600">{successMessage}</p>}
 
           <button
             type="submit"
+            data-testid="auth-submit-button"
             disabled={loading}
             className="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >

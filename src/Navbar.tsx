@@ -32,10 +32,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
               Objavi oglas
             </button>
             {user ? (
-              <div className="flex items-center gap-3 px-4 py-2 bg-slate-200 rounded-full">
+              <div data-testid="auth-user-chip" className="flex items-center gap-3 px-4 py-2 bg-slate-200 rounded-full">
                 <span className="text-sm font-medium">{user.user_metadata?.full_name || user.email}</span>
                 <button
                   onClick={onLogoutClick}
+                  data-testid="auth-logout-button"
                   className="text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
                 >
                   Odjava
@@ -44,6 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
             ) : (
               <button
                 onClick={onLoginClick}
+                data-testid="open-auth-modal"
                 className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-full hover:bg-slate-800 transition-colors"
               >
                 <User className="w-5 h-5" />
