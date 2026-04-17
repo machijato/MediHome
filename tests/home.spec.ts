@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('authenticated user can login, create listing, and verify listing render', async ({ page }) => {
+test('authenticated user can login, create listing, and verify listing render', async ({ page }, testInfo) => {
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
 
   await page.goto('/');
@@ -10,6 +10,31 @@ test('authenticated user can login, create listing, and verify listing render', 
   if (await authUserChip.count()) {
     await page.locator('[data-testid="auth-logout-button"]').click();
   }
+
+  console.log('URL:', page.url());
+  console.log('TITLE:', await page.title());
+
+  const openAuthModalCount = await page.locator('[data-testid="open-auth-modal"]').count();
+  const authUserChipCount = await page.locator('[data-testid="auth-user-chip"]').count();
+  const openCreateListingCount = await page.locator('[data-testid="open-create-listing"]').count();
+  const openCreateListingCtaCount = await page.locator('[data-testid="open-create-listing-cta"]').count();
+
+  console.log('[data-testid="open-auth-modal"] count:', openAuthModalCount);
+  console.log('[data-testid="auth-user-chip"] count:', authUserChipCount);
+  console.log('[data-testid="open-create-listing"] count:', openCreateListingCount);
+  console.log('[data-testid="open-create-listing-cta"] count:', openCreateListingCtaCount);
+
+  const dataTestIds = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('[data-testid]'))
+      .map((element) => element.getAttribute('data-testid'))
+      .filter((value): value is string => Boolean(value)),
+  );
+  console.log('data-testid attributes found on page:', dataTestIds);
+
+  await page.screenshot({
+    path: testInfo.outputPath('pre-login-page.png'),
+    fullPage: true,
+  });
 
   await expect(page.locator('[data-testid="open-auth-modal"]')).toBeVisible({ timeout: 20000 });
   await page.locator('[data-testid="open-auth-modal"]').click();
