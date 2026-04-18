@@ -8,10 +8,6 @@ on:
     branches:
       - main
 
-permissions:
-  contents: read
-  deployments: read
-
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -29,46 +25,22 @@ jobs:
       
       - run: npx playwright install chromium
 
-      - name: Resolve Playwright base URL (PR preview)
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const sha = context.payload.pull_request.head.sha;
-            const { owner, repo } = context.repo;
-
-            const deployments = await github.paginate(github.rest.repos.listDeployments, {
-              owner,
-              repo,
-              sha,
-              per_page: 100,
-            });
-
-            for (const deployment of deployments) {
-              const statuses = await github.paginate(github.rest.repos.listDeploymentStatuses, {
-                owner,
-                repo,
-                deployment_id: deployment.id,
-                per_page: 100,
-              });
-
-              for (const status of statuses) {
-                if (status.state !== 'success') continue;
-                const rawUrl = status.environment_url || status.target_url;
-                if (!rawUrl || !rawUrl.includes('vercel.app')) continue;
-
-                const baseUrl = rawUrl.endsWith('/') ? rawUrl : `${rawUrl}/`;
-                core.exportVariable('PLAYWRIGHT_BASE_URL', baseUrl);
-                core.info(`Resolved PLAYWRIGHT_BASE_URL=${baseUrl}`);
-                return;
-              }
-            }
-
-            core.setFailed(`Could not resolve a successful vercel.app deployment URL for SHA ${sha}.`);
-
-      - name: Resolve Playwright base URL (main)
-        if: github.event_name != 'pull_request'
+      - name: Start local app
         run: |
-          echo "PLAYWRIGHT_BASE_URL=https://medi-home-chi.vercel.app/" >> "$GITHUB_ENV"
+          npx vite preview --host 127.0.0.1 --port 4173 &
+
+      - name: Wait for local app
+        run: |
+          for i in {1..60}; do
+            if curl -fsS "http://127.0.0.1:4173" >/dev/null; then
+              echo "Local app is ready on http://127.0.0.1:4173"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Local app did not become ready in time" >&2
+          exit 1
 
       - run: npx playwright test
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
