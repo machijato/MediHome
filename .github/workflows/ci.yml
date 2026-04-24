@@ -18,13 +18,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
 
       - run: npm install
 
       - run: npm run build
-      
-      - run: npx playwright install chromium
 
-      - run: npx playwright test
+      - run: npx playwright install --with-deps chromium
+
+      - name: Start app locally for Playwright
+        run: npm run dev > /tmp/medihome-dev.log 2>&1 &
+
+      - name: Wait for local app
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
+              echo "Local app is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Local app failed to start"
+          cat /tmp/medihome-dev.log || true
+          exit 1
+
+      - name: Run Playwright tests against localhost
+        run: npx playwright test
         env:
-          PLAYWRIGHT_BASE_URL: https://medi-home-chi.vercel.app/
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
