@@ -3,6 +3,13 @@ import { test, expect } from '@playwright/test';
 test('home page create listing wizard submits with stable selectors', async ({ page }) => {
   const uniqueTitle = `E2E Test Oglas ${Date.now()}`;
 
+  page.on('console', (message) => {
+    console.log(`BROWSER CONSOLE [${message.type()}]:`, message.text());
+  });
+  page.on('pageerror', (error) => {
+    console.log('BROWSER PAGEERROR:', error.message);
+  });
+
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
 
@@ -11,6 +18,17 @@ test('home page create listing wizard submits with stable selectors', async ({ p
 
   const useNavbarOpener = (await navbarOpener.count()) > 0 && await navbarOpener.isVisible();
   const opener = useNavbarOpener ? navbarOpener : ctaOpener;
+
+  console.log('URL:', page.url());
+  console.log('TITLE:', await page.title());
+  const testIds = await page.locator('[data-testid]').evaluateAll((elements) =>
+    elements.map((el) => el.getAttribute('data-testid'))
+  );
+  console.log('DATA TESTIDS:', testIds);
+  console.log('COUNT open-create-listing:', await page.locator('[data-testid="open-create-listing"]').count());
+  console.log('COUNT open-create-listing-cta:', await page.locator('[data-testid="open-create-listing-cta"]').count());
+  console.log('COUNT create-listing-modal:', await page.locator('[data-testid="create-listing-modal"]').count());
+  await page.screenshot({ path: 'localhost-before-opener.png', fullPage: true });
 
   await expect(opener).toBeVisible();
   await opener.click();

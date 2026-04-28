@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-const defaultBaseUrl = 'https://medi-home-chi.vercel.app/';
+const defaultBaseUrl = 'http://127.0.0.1:3000';
 
 export default defineConfig({
   testDir: './tests',
