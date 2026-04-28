@@ -3,12 +3,8 @@ import { test, expect } from '@playwright/test';
 test('home page create listing wizard submits with stable selectors', async ({ page }) => {
   const uniqueTitle = `E2E Test Oglas ${Date.now()}`;
 
-  page.on('console', (message) => {
-    console.log(`BROWSER CONSOLE [${message.type()}]:`, message.text());
-  });
-  page.on('pageerror', (error) => {
-    console.log('BROWSER PAGEERROR:', error.message);
-  });
+  page.on('console', (msg) => console.log('BROWSER LOG:', msg.text()));
+  page.on('pageerror', (err) => console.log('PAGE ERROR:', err.message));
 
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
