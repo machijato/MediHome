@@ -178,7 +178,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
         className="absolute inset-0 bg-slate-900/50"
       />
 
-      <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200">
+      <div
+        data-testid="auth-modal"
+        className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-slate-200"
+      >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-slate-900">{mode === 'auth' ? 'Prijava' : 'Reset lozinke'}</h2>
           <button
@@ -238,6 +241,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
               </label>
               <input
                 id="auth-email"
+                data-testid="auth-email-input"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -254,6 +258,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
               </label>
               <input
                 id="auth-password"
+                data-testid="auth-password-input"
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
@@ -310,6 +315,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
 
           <button
             type="submit"
+            data-testid="auth-submit-button"
             disabled={loading}
             className="w-full py-3 rounded-xl bg-primary text-white font-semibold hover:bg-primary/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
