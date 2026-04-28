@@ -12,6 +12,17 @@ test('home page create listing wizard submits with stable selectors', async ({ p
   const useNavbarOpener = (await navbarOpener.count()) > 0 && await navbarOpener.isVisible();
   const opener = useNavbarOpener ? navbarOpener : ctaOpener;
 
+  console.log('URL:', page.url());
+  console.log('TITLE:', await page.title());
+  const testIds = await page.locator('[data-testid]').evaluateAll((elements) =>
+    elements.map((el) => el.getAttribute('data-testid'))
+  );
+  console.log('DATA TESTIDS:', testIds);
+  console.log('COUNT open-create-listing:', await page.locator('[data-testid="open-create-listing"]').count());
+  console.log('COUNT open-create-listing-cta:', await page.locator('[data-testid="open-create-listing-cta"]').count());
+  console.log('COUNT create-listing-modal:', await page.locator('[data-testid="create-listing-modal"]').count());
+  await page.screenshot({ path: 'localhost-before-opener.png', fullPage: true });
+
   await expect(opener).toBeVisible();
   await opener.click();
 
