@@ -11,6 +11,9 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://example.supabase.co
+      VITE_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock.payload
 
     steps:
       - uses: actions/checkout@v4
@@ -44,20 +47,21 @@ jobs:
 
       - name: CI diagnostics before Playwright
         run: |
-          echo "=== package.json scripts ==="
-          node -e "const pkg=require('./package.json'); console.log(pkg.scripts)"
-          echo "=== cwd ==="
+          echo "=== pwd ==="
           pwd
-          echo "=== root file list ==="
+          echo "=== ls -la ==="
           ls -la
-          echo "=== first 40 lines from localhost ==="
-          curl -fsS http://127.0.0.1:3000 | sed -n '1,40p'
-          echo "=== contains React entry script (/src/main.tsx)? ==="
-          if curl -fsS http://127.0.0.1:3000 | grep -q '/src/main.tsx'; then
-            echo "Found /src/main.tsx entry script in served HTML"
-          else
-            echo "Did NOT find /src/main.tsx entry script in served HTML"
-          fi
+          echo "=== cat package.json ==="
+          cat package.json
+          echo "=== cat index.html ==="
+          cat index.html
+          echo "=== curl localhost head -80 ==="
+          curl -s http://127.0.0.1:3000/ | head -80
+          echo "=== curl /src/main.tsx head -40 ==="
+          curl -s http://127.0.0.1:3000/src/main.tsx | head -40 || true
+          echo "=== process / listening port diagnostics ==="
+          ps -ef | grep -E 'vite|node' | grep -v grep || true
+          ss -ltnp | grep ':3000' || true
           echo "=== dev server log (tail) ==="
           tail -n 80 /tmp/medihome-dev.log || true
 
