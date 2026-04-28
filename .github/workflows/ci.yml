@@ -42,6 +42,25 @@ jobs:
           cat /tmp/medihome-dev.log || true
           exit 1
 
+      - name: CI diagnostics before Playwright
+        run: |
+          echo "=== package.json scripts ==="
+          node -e "const pkg=require('./package.json'); console.log(pkg.scripts)"
+          echo "=== cwd ==="
+          pwd
+          echo "=== root file list ==="
+          ls -la
+          echo "=== first 40 lines from localhost ==="
+          curl -fsS http://127.0.0.1:3000 | sed -n '1,40p'
+          echo "=== contains React entry script (/src/main.tsx)? ==="
+          if curl -fsS http://127.0.0.1:3000 | grep -q '/src/main.tsx'; then
+            echo "Found /src/main.tsx entry script in served HTML"
+          else
+            echo "Did NOT find /src/main.tsx entry script in served HTML"
+          fi
+          echo "=== dev server log (tail) ==="
+          tail -n 80 /tmp/medihome-dev.log || true
+
       - name: Run Playwright tests against localhost
         run: npx playwright test
         env:
