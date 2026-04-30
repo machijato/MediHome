@@ -140,6 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
         setEmail('');
         setPassword('');
         setFullName('');
+        handleClose();
         return;
       }
 
