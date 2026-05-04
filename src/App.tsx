@@ -42,10 +42,10 @@ function HomePage() {
       const mapCategoryToProviderType = (categoryId: string): Provider['type'] => {
         const slug = categorySlugById.get(categoryId);
 
-        if (slug === 'physio') return 'physio';
-        if (slug === 'nurse') return 'nurse';
-        if (slug === 'equipment') return 'equipment';
-        if (slug === 'transport') return 'transport';
+        if (slug === 'fizioterapeut') return 'physio';
+        if (slug === 'kucna-njega') return 'nurse';
+        if (slug === 'najam-opreme') return 'equipment';
+        if (slug === 'sanitetski-prijevoz') return 'transport';
 
         return 'other';
       };

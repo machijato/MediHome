@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('authenticated user can create listing on localhost and see success or explicit error state', async ({ page }) => {
+test('authenticated user can create listing on localhost and see the new listing in UI', async ({ page }) => {
   test.setTimeout(60000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
   const diagnosticsPrefix = `auth-flow-${Date.now()}`;
@@ -86,7 +86,7 @@ test('authenticated user can create listing on localhost and see success or expl
     console.log('E2E STEP: after create-listing-modal visible');
 
     console.log('E2E STEP: before category selection');
-    await page.locator('[data-testid="category-physio"]').click();
+    await page.locator('[data-testid="category-fizioterapeut"]').click();
     console.log('E2E STEP: before next-step');
     await page.locator('[data-testid="next-step"]').click();
 
@@ -99,24 +99,15 @@ test('authenticated user can create listing on localhost and see success or expl
     console.log('E2E STEP: before submit-listing');
     await page.locator('[data-testid="submit-listing"]').click();
     console.log('E2E STEP: after submit-listing');
-    const errorMessage = page.locator('[data-testid="error-message"]');
-
-    console.log('E2E STEP: before success/error assertion');
-    try {
-      await expect(
-        modal,
-        'Timed out waiting for create-listing modal to close after submit.'
-      ).not.toBeVisible({ timeout: 20000 });
-      await expect(
-        page.getByText(uniqueTitle),
-        `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
-      ).toBeVisible({ timeout: 20000 });
-    } catch {
-      await expect(
-        errorMessage,
-        'Timed out waiting for visible error-message after submit fallback path.'
-      ).toBeVisible({ timeout: 20000 });
-    }
+    console.log('E2E STEP: before success assertions');
+    await expect(
+      modal,
+      'Timed out waiting for create-listing modal to close after submit.'
+    ).not.toBeVisible({ timeout: 20000 });
+    await expect(
+      page.getByText(uniqueTitle),
+      `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
+    ).toBeVisible({ timeout: 20000 });
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;

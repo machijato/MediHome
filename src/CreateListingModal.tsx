@@ -16,7 +16,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    type: 'physio',
+    type: 'fizioterapeut',
     price: '',
     locations: [ZUPANIJE[0]] as string[],
     description: '',
@@ -30,10 +30,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   });
 
   const categories = [
-    { id: 'physio', name: 'Fizioterapeut', desc: 'Fizikalna terapija, masaža, vježbe', icon: Activity },
-    { id: 'nurse', name: 'Njega u kući', desc: 'Medicinske sestre, njega osoba', icon: Home },
-    { id: 'equipment', name: 'Oprema', desc: 'Najam i prodaja', icon: Package },
-    { id: 'transport', name: 'Sanitetski prijevoz', desc: 'Prijevoz bolesnika i nepokretnih osoba', icon: Activity },
+    { id: 'fizioterapeut', name: 'Fizioterapeut', desc: 'Fizikalna terapija, masaža, vježbe', icon: Activity },
+    { id: 'kucna-njega', name: 'Njega u kući', desc: 'Medicinske sestre, njega osoba', icon: Home },
+    { id: 'najam-opreme', name: 'Oprema', desc: 'Najam i prodaja', icon: Package },
+    { id: 'sanitetski-prijevoz', name: 'Sanitetski prijevoz', desc: 'Prijevoz bolesnika i nepokretnih osoba', icon: Activity },
   ];
 
   const physioSpecs = [
@@ -151,7 +151,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   };
 
   const nextStep = () => {
-    if (step === 1 && (formData.type === 'equipment' || formData.type === 'transport')) {
+    if (step === 1 && (formData.type === 'najam-opreme' || formData.type === 'sanitetski-prijevoz')) {
       setStep(3); // Skip step 2 for equipment and transport
     } else {
       setStep(step + 1);
@@ -159,7 +159,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   };
 
   const prevStep = () => {
-    if (step === 3 && (formData.type === 'equipment' || formData.type === 'transport')) {
+    if (step === 3 && (formData.type === 'najam-opreme' || formData.type === 'sanitetski-prijevoz')) {
       setStep(1);
     } else {
       setStep(step - 1);
@@ -239,7 +239,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 </div>
               )}
 
-              {step === 2 && formData.type === 'physio' && (
+              {step === 2 && formData.type === 'fizioterapeut' && (
                 <div className="space-y-8">
                   <div className="space-y-4">
                     <h3 className="text-lg font-bold text-slate-900">Tip rada (moguće označiti oba)</h3>
@@ -312,7 +312,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 </div>
               )}
 
-              {step === 2 && formData.type === 'nurse' && (
+              {step === 2 && formData.type === 'kucna-njega' && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-bold text-slate-900">Odaberite usluge koje nudite</h3>
                   <div className="space-y-4">
@@ -353,7 +353,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     </div>
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-slate-700">
-                        {formData.type === 'equipment' ? 'Cijena (npr. 5€/dan)' : 'Cijena (npr. 30€/h)'}
+                        {formData.type === 'najam-opreme' ? 'Cijena (npr. 5€/dan)' : 'Cijena (npr. 30€/h)'}
                       </label>
                       <div className="relative">
                         <Euro className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -362,7 +362,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                           required
                           type="text"
                           className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary/20"
-                          placeholder={formData.type === 'equipment' ? '5€/dan' : '30€/h'}
+                          placeholder={formData.type === 'najam-opreme' ? '5€/dan' : '30€/h'}
                           value={formData.price}
                           onChange={e => setFormData({...formData, price: e.target.value})}
                         />
