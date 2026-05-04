@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('authenticated user can create listing on localhost and see success or explicit error state', async ({ page }) => {
+test('authenticated user can create listing on localhost and see created listing in UI', async ({ page }) => {
   test.setTimeout(60000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
   const diagnosticsPrefix = `auth-flow-${Date.now()}`;
@@ -101,21 +101,25 @@ test('authenticated user can create listing on localhost and see success or expl
     console.log('E2E STEP: after submit-listing');
     const errorMessage = page.locator('[data-testid="error-message"]');
 
-    console.log('E2E STEP: before success/error assertion');
-    try {
-      await expect(
-        modal,
-        'Timed out waiting for create-listing modal to close after submit.'
-      ).not.toBeVisible({ timeout: 20000 });
-      await expect(
-        page.getByText(uniqueTitle),
-        `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
-      ).toBeVisible({ timeout: 20000 });
-    } catch {
-      await expect(
-        errorMessage,
-        'Timed out waiting for visible error-message after submit fallback path.'
-      ).toBeVisible({ timeout: 20000 });
+    console.log('E2E STEP: before strict success assertion');
+    const submitOutcome = await Promise.race([
+      modal.waitFor({ state: 'hidden', timeout: 20000 }).then(() => 'modal-closed' as const),
+      errorMessage.waitFor({ state: 'visible', timeout: 20000 }).then(() => 'error-visible' as const),
+    ]);
+
+    if (submitOutcome === 'error-visible') {
+      const visibleError = (await errorMessage.first().innerText()).trim();
+      throw new Error(`Create listing failed with visible UI error-message: ${visibleError}`);
+    }
+
+    await expect(
+      page.getByText(uniqueTitle),
+      `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI after modal close.`
+    ).toBeVisible({ timeout: 20000 });
+
+    if (await errorMessage.first().isVisible()) {
+      const visibleError = (await errorMessage.first().innerText()).trim();
+      throw new Error(`Create listing showed error-message after success markers: ${visibleError}`);
     }
   } catch (error) {
     await captureDiagnostics('failure');
