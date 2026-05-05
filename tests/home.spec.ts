@@ -108,6 +108,7 @@ test('authenticated user can create listing on localhost and see the new listing
       page.getByText(uniqueTitle),
       `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
     ).toBeVisible({ timeout: 20000 });
+    await expect(page).toHaveURL(/\/$/);
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;

@@ -1,5 +1,6 @@
 export interface Provider {
   id: string;
+  slug?: string | null;
   name: string;
   type: 'physio' | 'nurse' | 'equipment' | 'transport' | 'other';
   rating: number;
