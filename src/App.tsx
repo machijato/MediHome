@@ -52,7 +52,7 @@ function HomePage() {
 
       const { data: listingsData, error: listingsError } = await supabase
         .from('provider_listings')
-        .select('id, title, description, city, price_from, price_unit, category_id, status')
+        .select('id, slug, title, description, city, price_from, price_unit, category_id, status')
         .eq('status', 'approved');
 
       if (listingsError) {
@@ -66,6 +66,7 @@ function HomePage() {
 
       const mappedProviders: Provider[] = listingsData.map((listing) => ({
         id: String(listing.id),
+        slug: listing.slug ?? null,
         name: listing.title ?? 'Bez naslova',
         type: mapCategoryToProviderType(String(listing.category_id)),
         rating: 5,

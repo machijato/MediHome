@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
 import { ZUPANIJE } from './constants';
 import { supabase } from './lib/supabase';
+import { generateListingSlug } from './utils/slugify';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -128,8 +129,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       return;
     }
 
+    const generatedSlug = generateListingSlug(formData.name);
+
     const { error } = await supabase.from('provider_listings').insert({
       title: formData.name,
+      slug: generatedSlug,
       description: formData.description,
       city: formData.locations[0] || '',
       price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
