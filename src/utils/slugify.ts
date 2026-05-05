@@ -14,6 +14,7 @@ export const generateListingSlug = (title: string): string => {
     .replace(/^-+|-+$/g, '');
 
   const base = normalized || 'oglas';
+  const randomSuffix = Math.random().toString(36).slice(2, 8);
 
-  return `${base}-${Date.now()}`;
+  return `${base}-${Date.now()}-${randomSuffix}`;
 };
