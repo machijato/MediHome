@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Route, Routes, useParams } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
@@ -260,7 +260,15 @@ function HomePage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
                 {filteredProviders.map((provider) => (
-                  <ListingCard key={provider.id} provider={provider} />
+                  provider.slug ? (
+                    <Link key={provider.id} to={`/oglas/${provider.slug}`} data-testid="listing-card" className="block">
+                      <ListingCard provider={provider} />
+                    </Link>
+                  ) : (
+                    <div key={provider.id} data-testid="listing-card">
+                      <ListingCard provider={provider} />
+                    </div>
+                  )
                 ))}
               </AnimatePresence>
             </div>
@@ -397,10 +405,82 @@ function HomePage() {
   );
 }
 
+function ListingDetailPage() {
+  const { slug } = useParams<{ slug: string }>();
+  const [listing, setListing] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isNotFound, setIsNotFound] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchListing = async () => {
+      if (!slug) {
+        if (isMounted) {
+          setIsNotFound(true);
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('provider_listings')
+        .select(`
+          title,
+          description,
+          price_from,
+          price_unit,
+          city,
+          service_categories(name, slug),
+          provider_profiles(display_name, provider_type, city, county)
+        `)
+        .eq('slug', slug)
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      if (error || !data) {
+        setListing(null);
+        setIsNotFound(true);
+      } else {
+        setListing(data);
+      }
+
+      setIsLoading(false);
+    };
+
+    fetchListing();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  if (isLoading) return <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">Učitavanje...</main>;
+  if (isNotFound || !listing) return <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">Oglas nije pronađen.</main>;
+
+  return (
+    <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">
+      <h1 data-testid="listing-detail-title" className="text-3xl font-bold text-slate-900 mb-4">{listing.title}</h1>
+      <p data-testid="listing-detail-description" className="text-slate-700 mb-6">{listing.description}</p>
+      <p data-testid="listing-detail-price" className="text-slate-800 mb-2 font-semibold">
+        {[listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru'}
+      </p>
+      <p data-testid="listing-detail-city" className="text-slate-700 mb-2">{listing.city || 'Nepoznato'}</p>
+      <p data-testid="listing-detail-provider" className="text-slate-700 mb-2">
+        {listing.provider_profiles?.display_name || 'Nepoznato'}
+      </p>
+      {listing.service_categories?.name && <p className="text-slate-600">Kategorija: {listing.service_categories.name}</p>}
+    </main>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/oglas/:slug" element={<ListingDetailPage />} />
       <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
