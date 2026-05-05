@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
-test('authenticated user can create listing on localhost and see the new listing in UI', async ({ page }) => {
+test('authenticated user can create listing, see it on homepage, and open detail page', async ({ page }) => {
   test.setTimeout(90000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
   const diagnosticsPrefix = `auth-flow-${Date.now()}`;
@@ -117,8 +117,9 @@ test('authenticated user can create listing on localhost and see the new listing
       'Timed out waiting for create-listing modal to close after submit.'
     ).not.toBeVisible({ timeout: 20000 });
 
+    const createdListingTitle = page.getByText(uniqueTitle);
     await expect(
-      page.getByText(uniqueTitle),
+      createdListingTitle,
       `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
     ).toBeVisible({ timeout: 20000 });
 
@@ -139,6 +140,17 @@ test('authenticated user can create listing on localhost and see the new listing
     expect(listing?.provider_profile_id, 'Expected provider_listings.provider_profile_id to be present.').toBeTruthy();
 
     await expect(page).toHaveURL(/\/$/);
+
+    const listingCardLink = page.locator('[data-testid="listing-card"]').filter({ hasText: uniqueTitle }).first();
+    await expect(listingCardLink, `Expected listing card for "${uniqueTitle}" to be visible.`).toBeVisible({ timeout: 20000 });
+    await listingCardLink.click();
+
+    await expect(page).toHaveURL(/\/oglas\//);
+    await expect(page.locator('[data-testid="listing-detail-page"]')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('[data-testid="listing-detail-title"]')).toHaveText(uniqueTitle);
+    await expect(page.locator('[data-testid="listing-detail-description"]')).toHaveText(
+      'Automated authenticated wizard submit flow check.'
+    );
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;
