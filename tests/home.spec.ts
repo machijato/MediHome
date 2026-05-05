@@ -1,11 +1,22 @@
+import 'dotenv/config';
 import { test, expect } from '@playwright/test';
+import { createClient } from '@supabase/supabase-js';
 
 test('authenticated user can create listing on localhost and see the new listing in UI', async ({ page }) => {
-  test.setTimeout(60000);
+  test.setTimeout(90000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
   const diagnosticsPrefix = `auth-flow-${Date.now()}`;
   const browserLogs: string[] = [];
   const pageErrors: string[] = [];
+
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY for DB verification in E2E test.');
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   page.on('console', (msg) => {
     const log = `[${msg.type()}] ${msg.text()}`;
@@ -59,13 +70,13 @@ test('authenticated user can create listing on localhost and see the new listing
       await page.locator('[data-testid="open-auth-modal"]').click();
       await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
       console.log('E2E STEP: after auth modal visible');
-      console.log('E2E STEP: before filling email/password');
-      await page.locator('[data-testid="auth-email-input"]').fill('makiblaz@gmail.com');
-      await page.locator('[data-testid="auth-password-input"]').fill('Maki4321');
+
+      await page.locator('[data-testid="auth-email-input"]').fill(process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com');
+      await page.locator('[data-testid="auth-password-input"]').fill(process.env.E2E_AUTH_PASSWORD ?? 'Maki4321');
+
       console.log('E2E STEP: before clicking auth submit');
       await page.locator('[data-testid="auth-submit-button"]').click();
       console.log('E2E STEP: after clicking auth submit');
-      console.log('E2E STEP: before waiting for auth-user-chip');
       await expect(
         authUserChip,
         'Timed out waiting for authenticated user chip after login submit.'
@@ -85,29 +96,48 @@ test('authenticated user can create listing on localhost and see the new listing
     await expect(modal).toBeVisible();
     console.log('E2E STEP: after create-listing-modal visible');
 
-    console.log('E2E STEP: before category selection');
     await page.locator('[data-testid="category-fizioterapeut"]').click();
-    console.log('E2E STEP: before next-step');
     await page.locator('[data-testid="next-step"]').click();
 
-    console.log('E2E STEP: before filling final form');
     await page.locator('[data-testid="input-title"]').fill(uniqueTitle);
     await page.locator('[data-testid="input-price"]').fill('30');
     await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
     await page.locator('[data-testid="input-description"]').fill('Automated authenticated wizard submit flow check.');
 
-    console.log('E2E STEP: before submit-listing');
     await page.locator('[data-testid="submit-listing"]').click();
-    console.log('E2E STEP: after submit-listing');
-    console.log('E2E STEP: before success assertions');
+
+    const errorMessage = page.locator('[data-testid="error-message"]');
+    if (await errorMessage.isVisible()) {
+      const errorText = (await errorMessage.textContent())?.trim() || '<empty error-message>';
+      throw new Error(`Create listing failed with visible error-message: ${errorText}`);
+    }
+
     await expect(
       modal,
       'Timed out waiting for create-listing modal to close after submit.'
     ).not.toBeVisible({ timeout: 20000 });
+
     await expect(
       page.getByText(uniqueTitle),
       `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
     ).toBeVisible({ timeout: 20000 });
+
+    const { data: listing, error: queryError } = await supabase
+      .from('provider_listings')
+      .select('title, slug, status, category_id, provider_profile_id')
+      .eq('title', uniqueTitle)
+      .maybeSingle();
+
+    if (queryError) {
+      throw new Error(`Supabase verification query failed for title "${uniqueTitle}": ${queryError.message}`);
+    }
+
+    expect(listing, `No provider_listings row found for title "${uniqueTitle}"`).toBeTruthy();
+    expect(listing?.slug, 'Expected provider_listings.slug to be present.').toBeTruthy();
+    expect(listing?.status, 'Expected provider_listings.status to be approved.').toBe('approved');
+    expect(listing?.category_id, 'Expected provider_listings.category_id to be present.').toBeTruthy();
+    expect(listing?.provider_profile_id, 'Expected provider_listings.provider_profile_id to be present.').toBeTruthy();
+
     await expect(page).toHaveURL(/\/$/);
   } catch (error) {
     await captureDiagnostics('failure');
