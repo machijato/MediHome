@@ -423,6 +423,9 @@ function ListingDetailPage() {
         return;
       }
 
+      setIsNotFound(false);
+      setIsLoading(true);
+
       const { data, error } = await supabase
         .from('provider_listings')
         .select(`
@@ -445,6 +448,7 @@ function ListingDetailPage() {
         setIsNotFound(true);
       } else {
         setListing(data);
+        setIsNotFound(false);
       }
 
       setIsLoading(false);
