@@ -436,6 +436,7 @@ function ListingDetailPage() {
           city,
           service_categories(name, slug),
           provider_profiles(display_name, provider_type, city, county, phone, email, website),
+          listing_images(image_url, storage_path, is_primary, display_order),
           listing_selected_options(
             service_options(label, value, display_order, service_option_groups(name, display_order))
           )
@@ -487,6 +488,15 @@ function ListingDetailPage() {
   const hasContactData = Boolean(
     phoneEntries.length > 0 || listing.provider_profiles?.email || listing.provider_profiles?.website,
   );
+  const sortedImages = [...(listing.listing_images ?? [])]
+    .filter((image: any) => image?.image_url)
+    .sort((a: any, b: any) => {
+      if (Boolean(a?.is_primary) !== Boolean(b?.is_primary)) {
+        return a?.is_primary ? -1 : 1;
+      }
+      return (a?.display_order ?? Number.MAX_SAFE_INTEGER) - (b?.display_order ?? Number.MAX_SAFE_INTEGER);
+    });
+  const primaryImage = sortedImages[0];
 
   return (
     <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12">
@@ -592,16 +602,25 @@ function ListingDetailPage() {
             )}
           </div>
 
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div data-testid="listing-detail-gallery" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Galerija</h2>
-            <div className="aspect-video rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/70 flex items-center justify-center text-slate-500">
-              <div className="text-center px-4">
-                <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3">
-                  <ImageOff className="w-6 h-6 text-slate-400" />
+            {primaryImage?.image_url ? (
+              <img
+                data-testid="listing-detail-image"
+                src={primaryImage.image_url}
+                alt={`Fotografija oglasa ${listing.title}`}
+                className="w-full aspect-video rounded-2xl border border-slate-200 object-cover"
+              />
+            ) : (
+              <div className="aspect-video rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/70 flex items-center justify-center text-slate-500">
+                <div className="text-center px-4">
+                  <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3">
+                    <ImageOff className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-600">Trenutno nema dodane fotografije</p>
                 </div>
-                <p className="text-sm font-medium text-slate-600">Trenutno nema dodane fotografije</p>
               </div>
-            </div>
+            )}
           </div>
         </aside>
       </div>
