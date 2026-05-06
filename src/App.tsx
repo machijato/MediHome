@@ -479,6 +479,9 @@ function ListingDetailPage() {
 
   const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
   const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
+  const hasContactData = Boolean(
+    listing.provider_profiles?.phone || listing.provider_profiles?.email || listing.provider_profiles?.website,
+  );
 
   return (
     <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12">
@@ -508,7 +511,7 @@ function ListingDetailPage() {
                       <h3 className="text-sm font-semibold text-slate-600 mb-2">{groupName}</h3>
                       <div className="flex flex-wrap gap-2">
                         {groupOptions.map((option: any) => (
-                          <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-sm font-medium">{option.label}</span>
+                          <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium">{option.label}</span>
                         ))}
                       </div>
                     </div>
@@ -517,14 +520,14 @@ function ListingDetailPage() {
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {selectedOptions.map((option: any) => (
-                    <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-sm font-medium">{option.label}</span>
+                    <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium">{option.label}</span>
                   ))}
                 </div>
               )}
             </section>
           ) : (
-            <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-900 mb-2">Usluge i specijalizacije</h2>
+            <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Usluge i specijalizacije</h2>
               <p className="text-sm text-slate-500">Nema dodatno označenih usluga.</p>
             </section>
           )}
@@ -535,15 +538,25 @@ function ListingDetailPage() {
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Pružatelj i kontakt</h2>
             <p data-testid="listing-detail-provider" className="text-slate-800 font-medium mb-3 flex items-center gap-2"><UserRound className="w-4 h-4 text-slate-500" />{listing.provider_profiles?.display_name || 'Nepoznato'}</p>
             <p className="text-sm text-slate-600 mb-1">Tip: {listing.provider_profiles?.provider_type || 'Nije navedeno'}</p>
-            <p className="text-sm text-slate-600">Lokacija: {listing.provider_profiles?.city || listing.provider_profiles?.county || listing.city || 'Nepoznato'}</p>
+            <p className="text-sm text-slate-600 mb-4">Lokacija: {listing.provider_profiles?.city || listing.provider_profiles?.county || listing.city || 'Nepoznato'}</p>
+            <button
+              type="button"
+              disabled={!hasContactData}
+              className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors bg-primary text-white enabled:hover:bg-primary/90 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
+            >
+              Kontaktiraj pružatelja
+            </button>
+            {!hasContactData && <p className="text-xs text-slate-500 mt-2">Kontakt podaci nisu dostupni</p>}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Galerija</h2>
-            <div className="aspect-video rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-500">
-              <div className="text-center">
-                <ImageOff className="w-8 h-8 mx-auto mb-2" />
-                <p className="text-sm">Trenutno nema dodane fotografije</p>
+            <div className="aspect-video rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/70 flex items-center justify-center text-slate-500">
+              <div className="text-center px-4">
+                <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3">
+                  <ImageOff className="w-6 h-6 text-slate-400" />
+                </div>
+                <p className="text-sm font-medium text-slate-600">Trenutno nema dodane fotografije</p>
               </div>
             </div>
           </div>
