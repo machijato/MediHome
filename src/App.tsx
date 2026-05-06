@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes, useParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
+import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
@@ -435,7 +435,10 @@ function ListingDetailPage() {
           price_unit,
           city,
           service_categories(name, slug),
-          provider_profiles(display_name, provider_type, city, county)
+          provider_profiles(display_name, provider_type, city, county),
+          listing_selected_options(
+            service_options(label, value, display_order, service_option_groups(name, display_order))
+          )
         `)
         .eq('slug', slug)
         .eq('status', 'approved')
@@ -464,18 +467,88 @@ function ListingDetailPage() {
   if (isLoading) return <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">Učitavanje...</main>;
   if (isNotFound || !listing) return <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">Oglas nije pronađen.</main>;
 
+  const selectedOptions = (listing.listing_selected_options ?? [])
+    .map((item: any) => item.service_options)
+    .filter(Boolean);
+
+  const groupedOptions = selectedOptions.reduce((acc: Record<string, any[]>, option: any) => {
+    const groupName = option.service_option_groups?.name || 'Ostalo';
+    acc[groupName] = [...(acc[groupName] ?? []), option];
+    return acc;
+  }, {});
+
+  const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
+  const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
+
   return (
-    <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">
-      <h1 data-testid="listing-detail-title" className="text-3xl font-bold text-slate-900 mb-4">{listing.title}</h1>
-      <p data-testid="listing-detail-description" className="text-slate-700 mb-6">{listing.description}</p>
-      <p data-testid="listing-detail-price" className="text-slate-800 mb-2 font-semibold">
-        {[listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru'}
-      </p>
-      <p data-testid="listing-detail-city" className="text-slate-700 mb-2">{listing.city || 'Nepoznato'}</p>
-      <p data-testid="listing-detail-provider" className="text-slate-700 mb-2">
-        {listing.provider_profiles?.display_name || 'Nepoznato'}
-      </p>
-      {listing.service_categories?.name && <p className="text-slate-600">Kategorija: {listing.service_categories.name}</p>}
+    <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mb-6">
+        <h1 data-testid="listing-detail-title" className="text-3xl md:text-4xl font-bold text-slate-900 mb-5">{listing.title}</h1>
+        <div className="flex flex-wrap gap-3 text-sm">
+          {listing.service_categories?.name && <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">{listing.service_categories.name}</span>}
+          <span data-testid="listing-detail-city" className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">{listing.city || 'Nepoznato'}</span>
+          <span data-testid="listing-detail-price" className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold">{[listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru'}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <section className="lg:col-span-2 space-y-6">
+          <article className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">Opis usluge</h2>
+            <p data-testid="listing-detail-description" className="text-slate-700 leading-relaxed whitespace-pre-wrap">{listing.description || 'Nema dostupnog opisa.'}</p>
+          </article>
+
+          {selectedOptions.length > 0 ? (
+            <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">Usluge i specijalizacije</h2>
+              {hasGroupMetadata ? (
+                <div className="space-y-5">
+                  {sortedGroupEntries.map(([groupName, groupOptions]) => (
+                    <div key={groupName}>
+                      <h3 className="text-sm font-semibold text-slate-600 mb-2">{groupName}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {groupOptions.map((option: any) => (
+                          <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-sm font-medium">{option.label}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {selectedOptions.map((option: any) => (
+                    <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 text-sm font-medium">{option.label}</span>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+            <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900 mb-2">Usluge i specijalizacije</h2>
+              <p className="text-sm text-slate-500">Nema dodatno označenih usluga.</p>
+            </section>
+          )}
+        </section>
+
+        <aside className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Pružatelj i kontakt</h2>
+            <p data-testid="listing-detail-provider" className="text-slate-800 font-medium mb-3 flex items-center gap-2"><UserRound className="w-4 h-4 text-slate-500" />{listing.provider_profiles?.display_name || 'Nepoznato'}</p>
+            <p className="text-sm text-slate-600 mb-1">Tip: {listing.provider_profiles?.provider_type || 'Nije navedeno'}</p>
+            <p className="text-sm text-slate-600">Lokacija: {listing.provider_profiles?.city || listing.provider_profiles?.county || listing.city || 'Nepoznato'}</p>
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Galerija</h2>
+            <div className="aspect-video rounded-xl border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-slate-500">
+              <div className="text-center">
+                <ImageOff className="w-8 h-8 mx-auto mb-2" />
+                <p className="text-sm">Trenutno nema dodane fotografije</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
