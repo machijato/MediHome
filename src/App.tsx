@@ -435,7 +435,7 @@ function ListingDetailPage() {
           price_unit,
           city,
           service_categories(name, slug),
-          provider_profiles(display_name, provider_type, city, county),
+          provider_profiles(display_name, provider_type, city, county, phone, email, website),
           listing_selected_options(
             service_options(label, value, display_order, service_option_groups(name, display_order))
           )
@@ -479,8 +479,13 @@ function ListingDetailPage() {
 
   const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
   const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
+  const phoneEntries = (() => {
+    const rawPhone = listing.provider_profiles?.phone;
+    if (!rawPhone) return [];
+    return Array.isArray(rawPhone) ? rawPhone.filter(Boolean) : [rawPhone];
+  })();
   const hasContactData = Boolean(
-    listing.provider_profiles?.phone || listing.provider_profiles?.email || listing.provider_profiles?.website,
+    phoneEntries.length > 0 || listing.provider_profiles?.email || listing.provider_profiles?.website,
   );
 
   return (
@@ -534,19 +539,57 @@ function ListingDetailPage() {
         </section>
 
         <aside className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div data-testid="listing-detail-contact-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Pružatelj i kontakt</h2>
             <p data-testid="listing-detail-provider" className="text-slate-800 font-medium mb-3 flex items-center gap-2"><UserRound className="w-4 h-4 text-slate-500" />{listing.provider_profiles?.display_name || 'Nepoznato'}</p>
             <p className="text-sm text-slate-600 mb-1">Tip: {listing.provider_profiles?.provider_type || 'Nije navedeno'}</p>
             <p className="text-sm text-slate-600 mb-4">Lokacija: {listing.provider_profiles?.city || listing.provider_profiles?.county || listing.city || 'Nepoznato'}</p>
-            <button
-              type="button"
-              disabled={!hasContactData}
-              className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors bg-primary text-white enabled:hover:bg-primary/90 disabled:bg-slate-200 disabled:text-slate-500 disabled:cursor-not-allowed"
-            >
-              Kontaktiraj pružatelja
-            </button>
-            {!hasContactData && <p className="text-xs text-slate-500 mt-2">Kontakt podaci nisu dostupni</p>}
+            {hasContactData ? (
+              <div className="space-y-3">
+                {phoneEntries.map((phone: string, index: number) => (
+                  <div key={`${phone}-${index}`}>
+                    <a
+                      data-testid={index === 0 ? 'listing-detail-phone-link' : undefined}
+                      href={`tel:${phone}`}
+                      className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors bg-primary text-white hover:bg-primary/90"
+                    >
+                      Nazovi
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1">{phone}</p>
+                  </div>
+                ))}
+
+                {listing.provider_profiles?.email && (
+                  <div>
+                    <a
+                      data-testid="listing-detail-email-link"
+                      href={`mailto:${listing.provider_profiles.email}`}
+                      className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors border border-slate-300 text-slate-700 hover:bg-slate-50"
+                    >
+                      Pošalji email
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1 break-all">{listing.provider_profiles.email}</p>
+                  </div>
+                )}
+
+                {listing.provider_profiles?.website && (
+                  <div>
+                    <a
+                      data-testid="listing-detail-website-link"
+                      href={listing.provider_profiles.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    >
+                      Web stranica
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1 break-all">{listing.provider_profiles.website}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Kontakt podaci nisu dostupni</p>
+            )}
           </div>
 
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
