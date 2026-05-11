@@ -480,6 +480,13 @@ function ListingDetailPage() {
 
   const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
   const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
+  const workTypeGroupNames = ['Tip rada', 'Način rada', 'Lokacija rada'];
+  const workTypeOptions = sortedGroupEntries
+    .filter(([groupName]) => workTypeGroupNames.some((name) => groupName.toLowerCase() === name.toLowerCase()))
+    .flatMap(([, options]) => options);
+  const serviceOptionEntries = sortedGroupEntries.filter(
+    ([groupName]) => !workTypeGroupNames.some((name) => groupName.toLowerCase() === name.toLowerCase()),
+  );
   const phoneEntries = (() => {
     const rawPhone = listing.provider_profiles?.phone;
     if (!rawPhone) return [];
@@ -507,6 +514,18 @@ function ListingDetailPage() {
           <span data-testid="listing-detail-city" className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">{listing.city || 'Nepoznato'}</span>
           <span data-testid="listing-detail-price" className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold">{[listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru'}</span>
         </div>
+        {workTypeOptions.length > 0 && (
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-slate-600 mb-2">Tip rada</p>
+            <div className="flex flex-wrap gap-2">
+              {workTypeOptions.map((option: any) => (
+                <span key={option.value} className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                  {option.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
@@ -520,18 +539,20 @@ function ListingDetailPage() {
             <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
               <h2 className="text-xl font-semibold text-slate-900 mb-4">Usluge i specijalizacije</h2>
               {hasGroupMetadata ? (
-                <div className="space-y-5">
-                  {sortedGroupEntries.map(([groupName, groupOptions]) => (
-                    <div key={groupName}>
-                      <h3 className="text-sm font-semibold text-slate-600 mb-2">{groupName}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {groupOptions.map((option: any) => (
-                          <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium">{option.label}</span>
-                        ))}
+                serviceOptionEntries.length > 0 ? (
+                  <div className="space-y-5">
+                    {serviceOptionEntries.map(([groupName, groupOptions]) => (
+                      <div key={groupName}>
+                        <h3 className="text-sm font-semibold text-slate-600 mb-2">{groupName}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {groupOptions.map((option: any) => (
+                            <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium">{option.label}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-slate-500">Nema dodatno označenih usluga.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {selectedOptions.map((option: any) => (
