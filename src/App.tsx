@@ -438,7 +438,7 @@ function ListingDetailPage() {
           provider_profiles(display_name, provider_type, city, county, phone, email, website),
           listing_images(image_url, storage_path, is_primary, display_order),
           listing_selected_options(
-            service_options(label, value, display_order, service_option_groups(name, display_order))
+            service_options(label, value, display_order, service_option_groups(title, key))
           )
         `)
         .eq('slug', slug)
@@ -473,19 +473,22 @@ function ListingDetailPage() {
     .filter(Boolean);
 
   const groupedOptions = selectedOptions.reduce((acc: Record<string, any[]>, option: any) => {
-    const groupName = option.service_option_groups?.name || 'Ostalo';
+    const groupName = option.service_option_groups?.title || 'Ostalo';
     acc[groupName] = [...(acc[groupName] ?? []), option];
     return acc;
   }, {});
 
-  const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
+  const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.title);
   const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
-  const workTypeGroupNames = ['Tip rada', 'Način rada', 'Lokacija rada'];
+  const workTypeGroupNames = ['Tip rada', 'Način rada', 'Lokacija rada', 'Nacin rada'];
   const workTypeOptions = sortedGroupEntries
-    .filter(([groupName]) => workTypeGroupNames.some((name) => groupName.toLowerCase() === name.toLowerCase()))
+    .filter(([, options]) => options.some((option: any) => option.service_option_groups?.key === 'work_type') || options.some((option: any) => workTypeGroupNames.some((name) => (option.service_option_groups?.title || '').toLowerCase() === name.toLowerCase())))
     .flatMap(([, options]) => options);
   const serviceOptionEntries = sortedGroupEntries.filter(
-    ([groupName]) => !workTypeGroupNames.some((name) => groupName.toLowerCase() === name.toLowerCase()),
+    ([groupName, options]) => !(
+      workTypeGroupNames.some((name) => groupName.toLowerCase() === name.toLowerCase())
+      || options.some((option: any) => option.service_option_groups?.key === 'work_type')
+    ),
   );
   const phoneEntries = (() => {
     const rawPhone = listing.provider_profiles?.phone;

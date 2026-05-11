@@ -164,10 +164,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
     if (selectedOptionLabels.length > 0) {
       const { data: optionsData, error: optionsError } = await supabase
-        .from('service_options')
-        .select('id, label')
-        .eq('category_id', category.id)
-        .in('label', selectedOptionLabels);
+        .from('service_option_groups')
+        .select('service_options(id, label)')
+        .eq('category_id', category.id);
 
       if (optionsError) {
         console.error('Greška pri dohvaćanju service options:', optionsError);
@@ -176,7 +175,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
         return;
       }
 
-      const optionIds = (optionsData ?? []).map((option) => option.id);
+      const optionIds = (optionsData ?? [])
+        .flatMap((group: any) => group.service_options ?? [])
+        .filter((option: any) => selectedOptionLabels.includes(option.label))
+        .map((option: any) => option.id);
       if (optionIds.length > 0) {
         const selectedOptionsRows = optionIds.map((optionId) => ({
           listing_id: insertedListing.id,
