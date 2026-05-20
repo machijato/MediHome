@@ -426,20 +426,17 @@ function ListingDetailPage() {
       setIsNotFound(false);
       setIsLoading(true);
 
-      const { data, error } = await supabase
+      const { data: baseListing, error: baseListingError } = await supabase
         .from('provider_listings')
         .select(`
+          id,
           title,
           description,
           price_from,
           price_unit,
           city,
-          service_categories(name, slug),
-          provider_profiles(display_name, provider_type, city, county, phone, email, website),
-          listing_images(image_url, storage_path, is_primary, display_order),
-          listing_selected_options(
-            service_options(label, value, display_order, service_option_groups(title, key))
-          )
+          provider_profile_id,
+          category_id
         `)
         .eq('slug', slug)
         .eq('status', 'approved')
@@ -447,11 +444,98 @@ function ListingDetailPage() {
 
       if (!isMounted) return;
 
-      if (error || !data) {
+      if (baseListingError || !baseListing) {
+        if (baseListingError) {
+          console.error('[listing-detail] base listing query failed:', baseListingError.message);
+        }
         setListing(null);
         setIsNotFound(true);
       } else {
-        setListing(data);
+        const mergedListing: any = {
+          ...baseListing,
+          provider_profiles: null,
+          service_categories: null,
+          listing_images: [],
+          listing_selected_options: [],
+        };
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('provider_profiles')
+          .select('display_name, provider_type, city, county, phone, email, website')
+          .eq('id', baseListing.provider_profile_id)
+          .maybeSingle();
+        if (profileError) {
+          console.error('[listing-detail] provider profile query failed:', profileError.message);
+        } else {
+          mergedListing.provider_profiles = profileData;
+        }
+
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('service_categories')
+          .select('name, slug')
+          .eq('id', baseListing.category_id)
+          .maybeSingle();
+        if (categoryError) {
+          console.error('[listing-detail] service category query failed:', categoryError.message);
+        } else {
+          mergedListing.service_categories = categoryData;
+        }
+
+        const { data: imageData, error: imageError } = await supabase
+          .from('listing_images')
+          .select('image_url, storage_path, is_primary, display_order')
+          .eq('listing_id', baseListing.id)
+          .order('is_primary', { ascending: false })
+          .order('display_order', { ascending: true });
+        if (imageError) {
+          console.error('[listing-detail] listing images query failed:', imageError.message);
+        } else {
+          mergedListing.listing_images = imageData ?? [];
+        }
+
+        const { data: selectedOptionsData, error: selectedOptionsError } = await supabase
+          .from('listing_selected_options')
+          .select('option_id')
+          .eq('listing_id', baseListing.id);
+        if (selectedOptionsError) {
+          console.error('[listing-detail] listing selected options query failed:', selectedOptionsError.message);
+        } else {
+          const optionIds = (selectedOptionsData ?? []).map((row: any) => row.option_id).filter(Boolean);
+          if (optionIds.length > 0) {
+            const { data: optionsData, error: optionsError } = await supabase
+              .from('service_options')
+              .select('id, label, value, display_order, group_id')
+              .in('id', optionIds);
+            if (optionsError) {
+              console.error('[listing-detail] service options query failed:', optionsError.message);
+            } else {
+              const groupIds = Array.from(new Set((optionsData ?? []).map((option: any) => option.group_id).filter(Boolean)));
+              let groupById = new Map();
+              if (groupIds.length > 0) {
+                const { data: groupsData, error: groupsError } = await supabase
+                  .from('service_option_groups')
+                  .select('id, key, name')
+                  .in('id', groupIds);
+                if (groupsError) {
+                  console.error('[listing-detail] service option groups query failed:', groupsError.message);
+                } else {
+                  groupById = new Map((groupsData ?? []).map((group: any) => [group.id, group]));
+                }
+              }
+
+              mergedListing.listing_selected_options = (optionsData ?? []).map((option: any) => ({
+                service_options: {
+                  label: option.label,
+                  value: option.value,
+                  display_order: option.display_order,
+                  service_option_groups: groupById.get(option.group_id) ?? null,
+                },
+              }));
+            }
+          }
+        }
+
+        setListing(mergedListing);
         setIsNotFound(false);
       }
 
@@ -473,16 +557,16 @@ function ListingDetailPage() {
     .filter(Boolean);
 
   const groupedOptions = selectedOptions.reduce((acc: Record<string, any[]>, option: any) => {
-    const groupName = option.service_option_groups?.title || 'Ostalo';
+    const groupName = option.service_option_groups?.name || 'Ostalo';
     acc[groupName] = [...(acc[groupName] ?? []), option];
     return acc;
   }, {});
 
-  const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.title);
+  const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
   const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
   const workTypeGroupNames = ['Tip rada', 'Način rada', 'Lokacija rada', 'Nacin rada'];
   const workTypeOptions = sortedGroupEntries
-    .filter(([, options]) => options.some((option: any) => option.service_option_groups?.key === 'work_type') || options.some((option: any) => workTypeGroupNames.some((name) => (option.service_option_groups?.title || '').toLowerCase() === name.toLowerCase())))
+    .filter(([, options]) => options.some((option: any) => option.service_option_groups?.key === 'work_type') || options.some((option: any) => workTypeGroupNames.some((name) => (option.service_option_groups?.name || '').toLowerCase() === name.toLowerCase())))
     .flatMap(([, options]) => options);
   const serviceOptionEntries = sortedGroupEntries.filter(
     ([groupName, options]) => !(
