@@ -14,6 +14,7 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
 
     steps:
       - uses: actions/checkout@v4
@@ -29,8 +30,25 @@ jobs:
 
       - run: npx playwright install --with-deps chromium
 
+      - name: Env diagnostics before Vite start
+        run: |
+          if [ -n "$VITE_SUPABASE_URL" ]; then
+            echo "VITE_SUPABASE_URL set: yes"
+          else
+            echo "VITE_SUPABASE_URL set: no"
+          fi
+          if [ -n "$VITE_SUPABASE_ANON_KEY" ]; then
+            echo "VITE_SUPABASE_ANON_KEY set: yes"
+          else
+            echo "VITE_SUPABASE_ANON_KEY set: no"
+          fi
+
       - name: Start app locally for Playwright
         run: npm run dev > /tmp/medihome-dev.log 2>&1 &
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
 
       - name: Wait for local app
         run: |
@@ -67,5 +85,3 @@ jobs:
 
       - name: Run Playwright tests against localhost
         run: npx playwright test
-        env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
