@@ -131,23 +131,71 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
     const generatedSlug = generateListingSlug(formData.name);
 
-    const { error } = await supabase.from('provider_listings').insert({
-      title: formData.name,
-      slug: generatedSlug,
-      description: formData.description,
-      city: formData.locations[0] || '',
-      price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
-      price_unit: 'EUR',
-      category_id: category.id,
-      provider_profile_id: providerProfile.id,
-      status: 'approved',
-    });
+    const { data: insertedListing, error: listingError } = await supabase
+      .from('provider_listings')
+      .insert({
+        title: formData.name,
+        slug: generatedSlug,
+        description: formData.description,
+        city: formData.locations[0] || '',
+        price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
+        price_unit: 'EUR',
+        category_id: category.id,
+        provider_profile_id: providerProfile.id,
+        status: 'approved',
+      })
+      .select('id')
+      .single();
 
-    if (error) {
-      console.error('Greška pri unosu oglasa u Supabase:', error);
+    if (listingError || !insertedListing?.id) {
+      console.error('Greška pri unosu oglasa u Supabase:', listingError);
       setSubmitError('Došlo je do greške pri spremanju oglasa. Pokušajte ponovno.');
       setIsSubmitting(false);
       return;
+    }
+
+    const selectedOptionLabels = [
+      ...(formData.specialization ?? []),
+      ...(formData.methods ?? []),
+      ...(formData.services ?? []),
+      ...(formData.workTypes.includes('teren') ? ['Dolazak u dom / teren'] : []),
+      ...(formData.workTypes.includes('ustanova') ? ['Rad u ustanovi / ordinaciji'] : []),
+    ];
+
+    if (selectedOptionLabels.length > 0) {
+      const { data: optionsData, error: optionsError } = await supabase
+        .from('service_option_groups')
+        .select('service_options(id, label)')
+        .eq('category_id', category.id);
+
+      if (optionsError) {
+        console.error('Greška pri dohvaćanju service options:', optionsError);
+        setSubmitError('Oglas je spremljen, ali opcije usluge nisu uspješno povezane.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const optionIds = (optionsData ?? [])
+        .flatMap((group: any) => group.service_options ?? [])
+        .filter((option: any) => selectedOptionLabels.includes(option.label))
+        .map((option: any) => option.id);
+      if (optionIds.length > 0) {
+        const selectedOptionsRows = optionIds.map((optionId) => ({
+          listing_id: insertedListing.id,
+          option_id: optionId,
+        }));
+
+        const { error: selectedOptionsError } = await supabase
+          .from('listing_selected_options')
+          .insert(selectedOptionsRows);
+
+        if (selectedOptionsError) {
+          console.error('Greška pri unosu listing_selected_options:', selectedOptionsError);
+          setSubmitError('Oglas je spremljen, ali opcije usluge nisu uspješno spremljene.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
     }
 
     await onSubmit();

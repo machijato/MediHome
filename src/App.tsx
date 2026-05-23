@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Route, Routes, useParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight } from 'lucide-react';
+import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
@@ -426,16 +426,17 @@ function ListingDetailPage() {
       setIsNotFound(false);
       setIsLoading(true);
 
-      const { data, error } = await supabase
+      const { data: baseListing, error: baseListingError } = await supabase
         .from('provider_listings')
         .select(`
+          id,
           title,
           description,
           price_from,
           price_unit,
           city,
-          service_categories(name, slug),
-          provider_profiles(display_name, provider_type, city, county)
+          provider_profile_id,
+          category_id
         `)
         .eq('slug', slug)
         .eq('status', 'approved')
@@ -443,11 +444,98 @@ function ListingDetailPage() {
 
       if (!isMounted) return;
 
-      if (error || !data) {
+      if (baseListingError || !baseListing) {
+        if (baseListingError) {
+          console.error('[listing-detail] base listing query failed:', baseListingError.message);
+        }
         setListing(null);
         setIsNotFound(true);
       } else {
-        setListing(data);
+        const mergedListing: any = {
+          ...baseListing,
+          provider_profiles: null,
+          service_categories: null,
+          listing_images: [],
+          listing_selected_options: [],
+        };
+
+        const { data: profileData, error: profileError } = await supabase
+          .from('provider_profiles')
+          .select('display_name, provider_type, city, county, phone, email, website')
+          .eq('id', baseListing.provider_profile_id)
+          .maybeSingle();
+        if (profileError) {
+          console.error('[listing-detail] provider profile query failed:', profileError.message);
+        } else {
+          mergedListing.provider_profiles = profileData;
+        }
+
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('service_categories')
+          .select('name, slug')
+          .eq('id', baseListing.category_id)
+          .maybeSingle();
+        if (categoryError) {
+          console.error('[listing-detail] service category query failed:', categoryError.message);
+        } else {
+          mergedListing.service_categories = categoryData;
+        }
+
+        const { data: imageData, error: imageError } = await supabase
+          .from('listing_images')
+          .select('image_url, storage_path, is_primary, display_order')
+          .eq('listing_id', baseListing.id)
+          .order('is_primary', { ascending: false })
+          .order('display_order', { ascending: true });
+        if (imageError) {
+          console.error('[listing-detail] listing images query failed:', imageError.message);
+        } else {
+          mergedListing.listing_images = imageData ?? [];
+        }
+
+        const { data: selectedOptionsData, error: selectedOptionsError } = await supabase
+          .from('listing_selected_options')
+          .select('option_id')
+          .eq('listing_id', baseListing.id);
+        if (selectedOptionsError) {
+          console.error('[listing-detail] listing selected options query failed:', selectedOptionsError.message);
+        } else {
+          const optionIds = (selectedOptionsData ?? []).map((row: any) => row.option_id).filter(Boolean);
+          if (optionIds.length > 0) {
+            const { data: optionsData, error: optionsError } = await supabase
+              .from('service_options')
+              .select('id, label, value, display_order, group_id')
+              .in('id', optionIds);
+            if (optionsError) {
+              console.error('[listing-detail] service options query failed:', optionsError.message);
+            } else {
+              const groupIds = Array.from(new Set((optionsData ?? []).map((option: any) => option.group_id).filter(Boolean)));
+              let groupById = new Map();
+              if (groupIds.length > 0) {
+                const { data: groupsData, error: groupsError } = await supabase
+                  .from('service_option_groups')
+                  .select('id, key, name')
+                  .in('id', groupIds);
+                if (groupsError) {
+                  console.error('[listing-detail] service option groups query failed:', groupsError.message);
+                } else {
+                  groupById = new Map((groupsData ?? []).map((group: any) => [group.id, group]));
+                }
+              }
+
+              mergedListing.listing_selected_options = (optionsData ?? []).map((option: any) => ({
+                service_options: {
+                  label: option.label,
+                  value: option.value,
+                  display_order: option.display_order,
+                  service_option_groups: groupById.get(option.group_id) ?? null,
+                },
+              }));
+            }
+          }
+        }
+
+        setListing(mergedListing);
         setIsNotFound(false);
       }
 
@@ -464,18 +552,186 @@ function ListingDetailPage() {
   if (isLoading) return <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">Učitavanje...</main>;
   if (isNotFound || !listing) return <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">Oglas nije pronađen.</main>;
 
+  const selectedOptions = (listing.listing_selected_options ?? [])
+    .map((item: any) => item.service_options)
+    .filter(Boolean);
+
+  const groupedOptions = selectedOptions.reduce((acc: Record<string, any[]>, option: any) => {
+    const groupName = option.service_option_groups?.name || 'Ostalo';
+    acc[groupName] = [...(acc[groupName] ?? []), option];
+    return acc;
+  }, {});
+
+  const hasGroupMetadata = selectedOptions.some((option: any) => option.service_option_groups?.name);
+  const sortedGroupEntries = Object.entries(groupedOptions as Record<string, any[]>).sort(([groupA], [groupB]) => groupA.localeCompare(groupB, 'hr'));
+  const workTypeGroupNames = ['Tip rada', 'Način rada', 'Lokacija rada', 'Nacin rada'];
+  const workTypeOptions = sortedGroupEntries
+    .filter(([, options]) => options.some((option: any) => option.service_option_groups?.key === 'work_type') || options.some((option: any) => workTypeGroupNames.some((name) => (option.service_option_groups?.name || '').toLowerCase() === name.toLowerCase())))
+    .flatMap(([, options]) => options);
+  const serviceOptionEntries = sortedGroupEntries.filter(
+    ([groupName, options]) => !(
+      workTypeGroupNames.some((name) => groupName.toLowerCase() === name.toLowerCase())
+      || options.some((option: any) => option.service_option_groups?.key === 'work_type')
+    ),
+  );
+  const phoneEntries = (() => {
+    const rawPhone = listing.provider_profiles?.phone;
+    if (!rawPhone) return [];
+    return Array.isArray(rawPhone) ? rawPhone.filter(Boolean) : [rawPhone];
+  })();
+  const hasContactData = Boolean(
+    phoneEntries.length > 0 || listing.provider_profiles?.email || listing.provider_profiles?.website,
+  );
+  const sortedImages = [...(listing.listing_images ?? [])]
+    .filter((image: any) => image?.image_url)
+    .sort((a: any, b: any) => {
+      if (Boolean(a?.is_primary) !== Boolean(b?.is_primary)) {
+        return a?.is_primary ? -1 : 1;
+      }
+      return (a?.display_order ?? Number.MAX_SAFE_INTEGER) - (b?.display_order ?? Number.MAX_SAFE_INTEGER);
+    });
+  const primaryImage = sortedImages[0];
+
   return (
-    <main data-testid="listing-detail-page" className="max-w-4xl mx-auto px-4 py-12">
-      <h1 data-testid="listing-detail-title" className="text-3xl font-bold text-slate-900 mb-4">{listing.title}</h1>
-      <p data-testid="listing-detail-description" className="text-slate-700 mb-6">{listing.description}</p>
-      <p data-testid="listing-detail-price" className="text-slate-800 mb-2 font-semibold">
-        {[listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru'}
-      </p>
-      <p data-testid="listing-detail-city" className="text-slate-700 mb-2">{listing.city || 'Nepoznato'}</p>
-      <p data-testid="listing-detail-provider" className="text-slate-700 mb-2">
-        {listing.provider_profiles?.display_name || 'Nepoznato'}
-      </p>
-      {listing.service_categories?.name && <p className="text-slate-600">Kategorija: {listing.service_categories.name}</p>}
+    <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mb-6">
+        <h1 data-testid="listing-detail-title" className="text-3xl md:text-4xl font-bold text-slate-900 mb-5">{listing.title}</h1>
+        <div className="flex flex-wrap gap-3 text-sm">
+          {listing.service_categories?.name && <span className="px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">{listing.service_categories.name}</span>}
+          <span data-testid="listing-detail-city" className="px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">{listing.city || 'Nepoznato'}</span>
+          <span data-testid="listing-detail-price" className="px-3 py-1.5 rounded-full bg-primary/10 text-primary font-semibold">{[listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru'}</span>
+        </div>
+        {workTypeOptions.length > 0 && (
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-slate-600 mb-2">Tip rada</p>
+            <div className="flex flex-wrap gap-2">
+              {workTypeOptions.map((option: any) => (
+                <span key={option.value} className="px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold">
+                  {option.label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <section className="lg:col-span-2 space-y-6">
+          <article className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">Opis usluge</h2>
+            <p data-testid="listing-detail-description" className="text-slate-700 leading-relaxed whitespace-pre-wrap">{listing.description || 'Nema dostupnog opisa.'}</p>
+          </article>
+
+          {selectedOptions.length > 0 ? (
+            <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">Usluge i specijalizacije</h2>
+              {hasGroupMetadata ? (
+                serviceOptionEntries.length > 0 ? (
+                  <div className="space-y-5">
+                    {serviceOptionEntries.map(([groupName, groupOptions]) => (
+                      <div key={groupName}>
+                        <h3 className="text-sm font-semibold text-slate-600 mb-2">{groupName}</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {groupOptions.map((option: any) => (
+                            <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium">{option.label}</span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : <p className="text-sm text-slate-500">Nema dodatno označenih usluga.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {selectedOptions.map((option: any) => (
+                    <span key={option.value} data-testid="listing-detail-option" className="px-3 py-1.5 rounded-full border border-slate-200 bg-slate-50 text-slate-700 text-sm font-medium">{option.label}</span>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+            <section data-testid="listing-detail-options" className="bg-white border border-slate-200 rounded-2xl p-5 md:p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Usluge i specijalizacije</h2>
+              <p className="text-sm text-slate-500">Nema dodatno označenih usluga.</p>
+            </section>
+          )}
+        </section>
+
+        <aside className="space-y-6">
+          <div data-testid="listing-detail-contact-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Pružatelj i kontakt</h2>
+            <p data-testid="listing-detail-provider" className="text-slate-800 font-medium mb-3 flex items-center gap-2"><UserRound className="w-4 h-4 text-slate-500" />{listing.provider_profiles?.display_name || 'Nepoznato'}</p>
+            <p className="text-sm text-slate-600 mb-1">Tip: {listing.provider_profiles?.provider_type || 'Nije navedeno'}</p>
+            <p className="text-sm text-slate-600 mb-4">Lokacija: {listing.provider_profiles?.city || listing.provider_profiles?.county || listing.city || 'Nepoznato'}</p>
+            {hasContactData ? (
+              <div className="space-y-3">
+                {phoneEntries.map((phone: string, index: number) => (
+                  <div key={`${phone}-${index}`}>
+                    <a
+                      data-testid={index === 0 ? 'listing-detail-phone-link' : undefined}
+                      href={`tel:${phone}`}
+                      className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors bg-primary text-white hover:bg-primary/90"
+                    >
+                      Nazovi
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1">{phone}</p>
+                  </div>
+                ))}
+
+                {listing.provider_profiles?.email && (
+                  <div>
+                    <a
+                      data-testid="listing-detail-email-link"
+                      href={`mailto:${listing.provider_profiles.email}`}
+                      className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors border border-slate-300 text-slate-700 hover:bg-slate-50"
+                    >
+                      Pošalji email
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1 break-all">{listing.provider_profiles.email}</p>
+                  </div>
+                )}
+
+                {listing.provider_profiles?.website && (
+                  <div>
+                    <a
+                      data-testid="listing-detail-website-link"
+                      href={listing.provider_profiles.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors border border-slate-200 text-slate-700 hover:bg-slate-50"
+                    >
+                      Web stranica
+                    </a>
+                    <p className="text-xs text-slate-500 mt-1 break-all">{listing.provider_profiles.website}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Kontakt podaci nisu dostupni</p>
+            )}
+          </div>
+
+          <div data-testid="listing-detail-gallery" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Galerija</h2>
+            {primaryImage?.image_url ? (
+              <img
+                data-testid="listing-detail-image"
+                src={primaryImage.image_url}
+                alt={`Fotografija oglasa ${listing.title}`}
+                className="w-full aspect-video rounded-2xl border border-slate-200 object-cover"
+              />
+            ) : (
+              <div className="aspect-video rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/70 flex items-center justify-center text-slate-500">
+                <div className="text-center px-4">
+                  <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3">
+                    <ImageOff className="w-6 h-6 text-slate-400" />
+                  </div>
+                  <p className="text-sm font-medium text-slate-600">Trenutno nema dodane fotografije</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }

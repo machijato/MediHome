@@ -1,10 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ?? 'https://example.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ?? 'public-anon-key';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const hasSupabaseUrl = Boolean(supabaseUrl);
+const hasSupabaseAnonKey = Boolean(supabaseAnonKey);
+const urlLooksLikeSupabase = Boolean(supabaseUrl && supabaseUrl.includes('.supabase.co'));
 
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  console.warn('Supabase env vars are missing; using safe local defaults.');
+console.info(
+  `[supabase-config] VITE_SUPABASE_URL exists: ${hasSupabaseUrl ? 'yes' : 'no'}; contains .supabase.co: ${urlLooksLikeSupabase ? 'yes' : 'no'}; VITE_SUPABASE_ANON_KEY exists: ${hasSupabaseAnonKey ? 'yes' : 'no'}`,
+);
+
+if (!hasSupabaseUrl || !hasSupabaseAnonKey) {
+  throw new Error(
+    'Supabase environment variables are missing. Expected VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.',
+  );
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
