@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
 import { ZUPANIJE } from './constants';
@@ -15,6 +15,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   const [step, setStep] = useState(1);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadPreviews, setUploadPreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type: 'fizioterapeut',
@@ -69,6 +72,20 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       ? list.filter(i => i !== item) 
       : [...list, item];
     setFormData({ ...formData, [field]: newList });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
+    const files = Array.from(e.target.files ?? []);
+    const limited = files.slice(0, 3);
+    setSelectedFiles(limited);
+    setUploadPreviews(limited.map((file) => URL.createObjectURL(file)));
+  };
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(uploadPreviews[index]);
+    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+    setUploadPreviews(uploadPreviews.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
@@ -198,8 +215,56 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       }
     }
 
+    if (selectedFiles.length > 0 && insertedListing?.id) {
+      setIsUploading(true);
+      try {
+        for (let i = 0; i < selectedFiles.length; i += 1) {
+          const file = selectedFiles[i];
+          const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+          const storagePath = `${insertedListing.id}/${Date.now()}-${sanitizedName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('listing-images')
+            .upload(storagePath, file, { upsert: false });
+
+          if (uploadError) {
+            console.error(`Greška pri uploadu slike ${i + 1}:`, uploadError);
+            continue;
+          }
+
+          const { data: urlData } = supabase.storage
+            .from('listing-images')
+            .getPublicUrl(storagePath);
+
+          if (!urlData?.publicUrl) {
+            continue;
+          }
+
+          await supabase.from('listing_images').insert({
+            listing_id: insertedListing.id,
+            image_url: urlData.publicUrl,
+            storage_path: storagePath,
+            is_primary: i === 0,
+            display_order: i,
+          });
+        }
+      } catch (error) {
+        console.error('Greška pri uploadu slika:', error);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     await onSubmit();
     onClose();
+    setIsSubmitting(false);
+  };
+
+  const handleSkipAndSubmit = async () => {
+    uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setUploadPreviews([]);
+    await handleSubmit();
   };
 
   const nextStep = () => {
@@ -247,7 +312,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 )}
                 <div>
                   <h2 className="text-2xl font-bold text-slate-900">Objavi oglas</h2>
-                  <p className="text-sm text-slate-500">Korak {step} od 3</p>
+                  <p className="text-sm text-slate-500">Korak {step} od 4</p>
                 </div>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -483,6 +548,48 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                   </div>
                 </div>
               )}
+
+              {step === 4 && (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Dodajte fotografije <span className="text-sm font-normal text-slate-500">(neobavezno)</span></h3>
+                    <p className="text-sm text-slate-500 mt-2">Maksimalno 3 fotografije. Prva fotografija bit će naslovna.</p>
+                  </div>
+                  <label
+                    data-testid="image-upload-label"
+                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-2xl p-8 cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                  >
+                    <input
+                      data-testid="image-upload-input"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <Upload className="w-8 h-8 text-slate-400" />
+                    <span className="font-semibold text-slate-700">Odaberite fotografije</span>
+                  </label>
+
+                  {uploadPreviews.length > 0 && (
+                    <div data-testid="image-upload-preview" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {uploadPreviews.map((src, i) => (
+                        <div key={src} className="border border-slate-200 rounded-xl p-3 space-y-2">
+                          <img src={src} alt={`Preview ${i + 1}`} className="w-full h-28 object-cover rounded-lg" />
+                          <button
+                            type="button"
+                            data-testid={`remove-image-${i}`}
+                            onClick={() => removeImage(i)}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                          >
+                            Ukloni
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -507,7 +614,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     Prethodno
                   </button>
                 )}
-                {step < 3 ? (
+                {step < 4 ? (
                   <button
                     type="button"
                     onClick={nextStep}
@@ -517,14 +624,24 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     Dalje
                   </button>
                 ) : (
+                  <>
+                  <button
+                    type="button"
+                    onClick={handleSkipAndSubmit}
+                    data-testid="skip-image-upload"
+                    className="px-6 py-2 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 transition-all"
+                  >
+                    Preskočite za sada
+                  </button>
                   <button
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || isUploading}
                     data-testid="submit-listing"
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   >
-                    {isSubmitting ? 'Spremanje...' : 'Objavi oglas'}
+                    {isUploading ? 'Učitavanje slika...' : isSubmitting ? 'Objavljujem...' : 'Objavi oglas'}
                   </button>
+                  </>
                 )}
               </div>
             </div>
@@ -534,3 +651,6 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     </AnimatePresence>
   );
 };
+  useEffect(() => () => {
+    uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [uploadPreviews]);
