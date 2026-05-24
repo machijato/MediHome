@@ -14,6 +14,7 @@ import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
 import { ResetPassword } from './pages/ResetPassword';
+import { ProviderProfilePage } from './ProviderProfilePage';
 
 function HomePage() {
   const [activeCategory, setActiveCategory] = useState<string>('all');
@@ -593,7 +594,7 @@ function ListingDetailPage() {
   const primaryImage = sortedImages[0];
 
   return (
-    <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12">
+    <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12 pb-20 lg:pb-0">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mb-6">
         <h1 data-testid="listing-detail-title" className="text-3xl md:text-4xl font-bold text-slate-900 mb-5">{listing.title}</h1>
         <div className="flex flex-wrap gap-3 text-sm">
@@ -656,10 +657,19 @@ function ListingDetailPage() {
           )}
         </section>
 
-        <aside className="space-y-6">
+        <aside className="space-y-6 order-last lg:order-none">
           <div data-testid="listing-detail-contact-card" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Pružatelj i kontakt</h2>
             <p data-testid="listing-detail-provider" className="text-slate-800 font-medium mb-3 flex items-center gap-2"><UserRound className="w-4 h-4 text-slate-500" />{listing.provider_profiles?.display_name || 'Nepoznato'}</p>
+            {listing.provider_profile_id && (
+              <Link
+                to={`/profil/${listing.provider_profile_id}`}
+                data-testid="listing-detail-provider-link"
+                className="text-sm text-primary hover:underline inline-flex mb-3"
+              >
+                Svi oglasi ovog pružatelja →
+              </Link>
+            )}
             <p className="text-sm text-slate-600 mb-1">Tip: {listing.provider_profiles?.provider_type || 'Nije navedeno'}</p>
             <p className="text-sm text-slate-600 mb-4">Lokacija: {listing.provider_profiles?.city || listing.provider_profiles?.county || listing.city || 'Nepoznato'}</p>
             {hasContactData ? (
@@ -732,6 +742,29 @@ function ListingDetailPage() {
           </div>
         </aside>
       </div>
+
+      {hasContactData && (
+        <div data-testid="listing-detail-sticky-cta" className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 px-4 py-3 flex gap-3 lg:hidden">
+          {phoneEntries[0] && (
+            <a
+              data-testid="sticky-cta-phone"
+              href={`tel:${phoneEntries[0]}`}
+              className="min-h-11 flex-1 inline-flex items-center justify-center rounded-xl px-4 text-sm font-semibold bg-primary text-white"
+            >
+              Nazovi
+            </a>
+          )}
+          {listing.provider_profiles?.email && (
+            <a
+              data-testid="sticky-cta-email"
+              href={`mailto:${listing.provider_profiles.email}`}
+              className="min-h-11 flex-1 inline-flex items-center justify-center rounded-xl px-4 text-sm font-semibold border border-slate-300 text-slate-700"
+            >
+              Email
+            </a>
+          )}
+        </div>
+      )}
     </main>
   );
 }
@@ -745,6 +778,7 @@ export default function App() {
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
     </Routes>
   );
 }
