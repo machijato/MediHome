@@ -41,23 +41,28 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   ];
 
   const physioSpecs = [
-    'Ortopedska rehabilitacija',
-    'Fizioterapija kralježnice',
-    'Sportska fizioterapija',
-    'Neurološka rehabilitacija',
+    'Neurološka fizioterapija',
+    'Kardiorespiratorna fizioterapija',
+    'Mišićno-koštana (Muskuloskeletna) fizioterapija',
     'Pedijatrijska fizioterapija',
-    'Reumatološka rehabilitacija',
-    'Kronična bol'
+    'Sportska fizioterapija',
+    'Gerijatrijska fizioterapija',
+    'Fizioterapija u ginekologiji i opstetriciji',
+    'Onkološka fizioterapija',
   ];
 
   const physioMethods = [
     'Manualna terapija',
     'Medicinska i sportska masaža',
-    'Elektroterapija',
+    'Elektroterapija (TENS, IFS, Galvanska struja)',
     'Magnetoterapija',
     'Ultrazvučna terapija',
-    'Laser visokog intenziteta',
-    'Ostalo'
+    'Laseroterapija',
+    'Terapija udarnim valom',
+    'Kinezio taping',
+    'Kineziterapija (Medicinska gimnastika)',
+    'Proprioceptivna neuromuskularna facilitacija',
+    'Ostalo',
   ];
 
   const nurseServices = [
