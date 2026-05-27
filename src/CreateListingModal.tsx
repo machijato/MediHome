@@ -267,6 +267,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     await handleSubmit();
   };
 
+  const handleSubmitWithImages = async () => {
+    await handleSubmit();
+  };
+
   const nextStep = () => {
     if (step === 1 && (formData.type === 'najam-opreme' || formData.type === 'sanitetski-prijevoz')) {
       setStep(3); // Skip step 2 for equipment and transport
@@ -282,6 +286,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       setStep(step - 1);
     }
   };
+
+  useEffect(() => () => {
+    uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
+  }, [uploadPreviews]);
 
   return (
     <AnimatePresence>
@@ -634,7 +642,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     Preskočite za sada
                   </button>
                   <button
-                    onClick={handleSubmit}
+                    onClick={handleSubmitWithImages}
                     disabled={isSubmitting || isUploading}
                     data-testid="submit-listing"
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
@@ -651,6 +659,3 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     </AnimatePresence>
   );
 };
-  useEffect(() => () => {
-    uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
-  }, [uploadPreviews]);
