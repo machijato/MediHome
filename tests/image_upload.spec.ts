@@ -37,7 +37,6 @@ test('authenticated user can upload image during listing creation', async ({ pag
   await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
   await page.locator('[data-testid="input-description"]').fill('Test upload slike.');
   await page.locator('[data-testid="next-step"]').click();
-  await page.locator('[data-testid="next-step"]').click();
 
   await expect(page.locator('[data-testid="image-upload-input"]')).toBeAttached();
 
@@ -91,7 +90,6 @@ test('user can skip image upload', async ({ page }) => {
   await page.locator('[data-testid="input-price"]').fill('40');
   await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
   await page.locator('[data-testid="input-description"]').fill('Test skip upload.');
-  await page.locator('[data-testid="next-step"]').click();
   await page.locator('[data-testid="next-step"]').click();
 
   await expect(page.locator('[data-testid="skip-image-upload"]')).toBeVisible({ timeout: 5000 });
