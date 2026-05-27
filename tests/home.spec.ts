@@ -103,6 +103,7 @@ test('authenticated user can create listing, see it on homepage, and open detail
     await page.locator('[data-testid="input-price"]').fill('30');
     await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
     await page.locator('[data-testid="input-description"]').fill('Automated authenticated wizard submit flow check.');
+    await page.locator('[data-testid="next-step"]').click();
 
     await page.locator('[data-testid="submit-listing"]').click();
 
