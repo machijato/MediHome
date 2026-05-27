@@ -41,35 +41,54 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   ];
 
   const physioSpecs = [
-    'Neurološka fizioterapija',
-    'Kardiorespiratorna fizioterapija',
     'Mišićno-koštana (Muskuloskeletna) fizioterapija',
+    'Neurološka fizioterapija',
     'Pedijatrijska fizioterapija',
+    'Kardiorespiratorna fizioterapija',
     'Sportska fizioterapija',
     'Gerijatrijska fizioterapija',
     'Fizioterapija u ginekologiji i opstetriciji',
     'Onkološka fizioterapija',
+    'Ostalo',
   ];
 
   const physioMethods = [
     'Manualna terapija',
+    'Kineziterapija (Medicinska gimnastika)',
     'Medicinska i sportska masaža',
     'Elektroterapija (TENS, IFS, Galvanska struja)',
     'Magnetoterapija',
     'Ultrazvučna terapija',
     'Laseroterapija',
     'Terapija udarnim valom',
-    'Kinezio taping',
-    'Kineziterapija (Medicinska gimnastika)',
     'Proprioceptivna neuromuskularna facilitacija',
+    'Kinezio taping',
     'Ostalo',
   ];
 
   const nurseServices = [
     { id: 'care', label: 'Zdravstvena njega u kući', sub: 'previjanje rana, primjena terapije, njega stome ili katetera' },
-    { id: 'monitoring', label: 'Praćenje stanja', sub: 'mjerenje tlaka, razina šečera u krvi i promatranje bolesnika' },
+    { id: 'monitoring', label: 'Praćenje zdravstvenog stanja', sub: 'mjerenje tlaka, razina šečera u krvi i promatranje bolesnika' },
     { id: 'palliative', label: 'Palijativna skrb', sub: 'briga za teško oboljele u terminalnoj fazi' },
-    { id: 'help', label: 'Pomoć u kući', sub: 'osobna higijena, prehrana, dostava obroka, pospremanje, nabava' }
+    { id: 'help', label: 'Pomoć u kući', sub: 'osobna higijena, prehrana, dostava obroka, pospremanje, nabava' },
+    { id: 'other', label: 'Ostalo', sub: '' },
+  ];
+
+  const equipmentOptions = [
+    'Invalidska kolica',
+    'Bolnički krevet',
+    'Hodalice i štake',
+    'Medicinski madraci',
+    'Oprema za kretanje i rehabilitaciju',
+    'Ostalo',
+  ];
+
+  const transportOptions = [
+    'Prijevoz pacijenata',
+    'Prijevoz osoba s invaliditetom',
+    'Ležeći transport',
+    'Pratnja medicinskog osoblja',
+    'Ostalo',
   ];
 
   const toggleSelection = (list: string[], item: string, field: string) => {
@@ -277,19 +296,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   };
 
   const nextStep = () => {
-    if (step === 1 && (formData.type === 'najam-opreme' || formData.type === 'sanitetski-prijevoz')) {
-      setStep(3); // Skip step 2 for equipment and transport
-    } else {
-      setStep(step + 1);
-    }
+    setStep(step + 1);
   };
 
   const prevStep = () => {
-    if (step === 3 && (formData.type === 'najam-opreme' || formData.type === 'sanitetski-prijevoz')) {
-      setStep(1);
-    } else {
-      setStep(step - 1);
-    }
+    setStep(step - 1);
   };
 
   useEffect(() => () => {
@@ -466,6 +477,49 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 </div>
               )}
 
+
+
+              {step === 2 && formData.type === 'najam-opreme' && (
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-slate-900">Odaberite opremu koju nudite</h3>
+                  <div className="space-y-3">
+                    {equipmentOptions.map(option => (
+                      <label key={option} className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                        formData.services.includes(option) ? 'border-primary bg-primary/5' : 'border-slate-100 hover:border-slate-200'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={formData.services.includes(option)}
+                          onChange={() => toggleSelection(formData.services, option, 'services')}
+                          className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        <span className="font-medium text-slate-900">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {step === 2 && formData.type === 'sanitetski-prijevoz' && (
+                <div className="space-y-6">
+                  <h3 className="text-xl font-bold text-slate-900">Odaberite vrstu prijevoza</h3>
+                  <div className="space-y-3">
+                    {transportOptions.map(option => (
+                      <label key={option} className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all cursor-pointer ${
+                        formData.services.includes(option) ? 'border-primary bg-primary/5' : 'border-slate-100 hover:border-slate-200'
+                      }`}>
+                        <input
+                          type="checkbox"
+                          checked={formData.services.includes(option)}
+                          onChange={() => toggleSelection(formData.services, option, 'services')}
+                          className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary"
+                        />
+                        <span className="font-medium text-slate-900">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
               {step === 3 && (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
