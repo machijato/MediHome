@@ -17,6 +17,7 @@ export const ListingCard: React.FC<ListingCardProps> = ({ provider }) => {
     >
       <div className="relative h-48 overflow-hidden">
         <img
+          data-testid="listing-card-image"
           src={provider.image}
           alt={provider.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

@@ -65,6 +65,30 @@ function HomePage() {
         return;
       }
 
+      const listingIds = listingsData.map((listing) => listing.id).filter(Boolean);
+      let primaryImageByListingId = new Map<string, string>();
+
+      if (listingIds.length > 0) {
+        const { data: primaryImagesData, error: primaryImagesError } = await supabase
+          .from('listing_images')
+          .select('listing_id, image_url, display_order')
+          .in('listing_id', listingIds)
+          .eq('is_primary', true)
+          .order('display_order', { ascending: true });
+
+        if (primaryImagesError) {
+          console.error('Greška pri dohvaćanju primarnih slika oglasa:', primaryImagesError.message);
+        } else {
+          primaryImageByListingId = (primaryImagesData ?? []).reduce((imageMap, image) => {
+            const listingId = String(image.listing_id);
+            if (image.image_url && !imageMap.has(listingId)) {
+              imageMap.set(listingId, image.image_url);
+            }
+            return imageMap;
+          }, new Map<string, string>());
+        }
+      }
+
       const mappedProviders: Provider[] = listingsData.map((listing) => ({
         id: String(listing.id),
         slug: listing.slug ?? null,
@@ -74,7 +98,7 @@ function HomePage() {
         reviewsCount: 0,
         price: [listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru',
         location: listing.city ?? 'Nepoznato',
-        image: 'https://picsum.photos/seed/provider/400/300',
+        image: primaryImageByListingId.get(String(listing.id)) ?? 'https://picsum.photos/seed/provider/400/300',
         description: listing.description ?? '',
         tags: [],
       }));
@@ -486,8 +510,9 @@ function ListingDetailPage() {
           .from('listing_images')
           .select('image_url, storage_path, is_primary, display_order')
           .eq('listing_id', baseListing.id)
-          .order('is_primary', { ascending: false })
-          .order('display_order', { ascending: true });
+          .eq('is_primary', true)
+          .order('display_order', { ascending: true })
+          .limit(1);
         if (imageError) {
           console.error('[listing-detail] listing images query failed:', imageError.message);
         } else {

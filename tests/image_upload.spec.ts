@@ -56,6 +56,21 @@ test('authenticated user can upload image during listing creation', async ({ pag
 
   await expect(modal).not.toBeVisible({ timeout: 20000 });
   await expect(page.getByText(uniqueTitle)).toBeVisible({ timeout: 20000 });
+
+  const listingCard = page.locator('[data-testid="listing-card"]').filter({ hasText: uniqueTitle }).first();
+  await expect(listingCard).toBeVisible({ timeout: 20000 });
+
+  const cardImage = listingCard.locator('[data-testid="listing-card-image"]');
+  await expect(cardImage).toBeVisible({ timeout: 20000 });
+  await expect(cardImage).not.toHaveAttribute('src', /picsum\.photos/);
+  const cardImageUrl = await cardImage.getAttribute('src');
+  expect(cardImageUrl, 'Expected listing card to use the uploaded primary image URL.').toBeTruthy();
+
+  await listingCard.click();
+  await expect(page).toHaveURL(/\/oglas\//);
+  const detailImage = page.locator('[data-testid="listing-detail-image"]');
+  await expect(detailImage).toBeVisible({ timeout: 20000 });
+  await expect(detailImage).toHaveAttribute('src', cardImageUrl ?? '');
 });
 
 test('user can skip image upload', async ({ page }) => {
