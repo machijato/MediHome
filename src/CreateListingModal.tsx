@@ -209,32 +209,54 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
         .select('service_options(id, label)')
         .eq('category_id', category.id);
 
+      const fetchedServiceOptions = (optionsData ?? [])
+        .flatMap((group: any) => group.service_options ?? []);
+      const fetchedOptionLabels = fetchedServiceOptions.map((option: any) => option.label);
+      const missingLabels = selectedOptionLabels.filter(
+        (label) => !fetchedOptionLabels.includes(label)
+      );
+
       if (optionsError) {
-        console.error('Greška pri dohvaćanju service options:', optionsError);
-        setSubmitError('Oglas je spremljen, ali opcije usluge nisu uspješno povezane.');
-        setIsSubmitting(false);
-        return;
-      }
+        console.error('Greška pri dohvaćanju service_options za odabrane opcije oglasa:', {
+          selectedOptionLabels,
+          fetchedServiceOptions,
+          missingLabels: selectedOptionLabels,
+          supabaseInsertError: optionsError,
+        });
+      } else {
+        if (missingLabels.length > 0) {
+          console.error('Neke odabrane opcije nisu pronađene u service_options i neće blokirati spremanje oglasa:', {
+            selectedOptionLabels,
+            fetchedServiceOptions,
+            missingLabels,
+            supabaseInsertError: null,
+          });
+        }
 
-      const optionIds = (optionsData ?? [])
-        .flatMap((group: any) => group.service_options ?? [])
-        .filter((option: any) => selectedOptionLabels.includes(option.label))
-        .map((option: any) => option.id);
-      if (optionIds.length > 0) {
-        const selectedOptionsRows = optionIds.map((optionId) => ({
-          listing_id: insertedListing.id,
-          option_id: optionId,
-        }));
+        const optionIds = Array.from(new Set(
+          fetchedServiceOptions
+            .filter((option: any) => selectedOptionLabels.includes(option.label))
+            .map((option: any) => option.id)
+        ));
 
-        const { error: selectedOptionsError } = await supabase
-          .from('listing_selected_options')
-          .insert(selectedOptionsRows);
+        if (optionIds.length > 0) {
+          const selectedOptionsRows = optionIds.map((optionId) => ({
+            listing_id: insertedListing.id,
+            option_id: optionId,
+          }));
 
-        if (selectedOptionsError) {
-          console.error('Greška pri unosu listing_selected_options:', selectedOptionsError);
-          setSubmitError('Oglas je spremljen, ali opcije usluge nisu uspješno spremljene.');
-          setIsSubmitting(false);
-          return;
+          const { error: selectedOptionsError } = await supabase
+            .from('listing_selected_options')
+            .insert(selectedOptionsRows);
+
+          if (selectedOptionsError) {
+            console.error('Greška pri unosu listing_selected_options; oglas i slike nastavljaju se spremati bez blokiranja modala:', {
+              selectedOptionLabels,
+              fetchedServiceOptions,
+              missingLabels,
+              supabaseInsertError: selectedOptionsError,
+            });
+          }
         }
       }
     }
