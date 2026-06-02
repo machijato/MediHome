@@ -8,6 +8,13 @@ export interface Provider {
   price: string;
   location: string;
   image: string;
+  listing_images?: Array<{
+    id?: string;
+    image_url?: string | null;
+    storage_path?: string | null;
+    is_primary?: boolean | null;
+    display_order?: number | null;
+  }>;
   description: string;
   tags: string[];
 }
