@@ -53,7 +53,7 @@ function HomePage() {
 
       const { data: listingsData, error: listingsError } = await supabase
         .from('provider_listings')
-        .select('id, slug, title, description, city, price_from, price_unit, category_id, status')
+        .select('id, slug, title, description, city, price_from, price_unit, category_id, status, listing_images(*)')
         .eq('status', 'approved');
 
       if (listingsError) {
@@ -74,7 +74,8 @@ function HomePage() {
         reviewsCount: 0,
         price: [listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru',
         location: listing.city ?? 'Nepoznato',
-        image: 'https://picsum.photos/seed/provider/400/300',
+        image: `https://picsum.photos/seed/${listing.id}/400/300`,
+        listing_images: listing.listing_images ?? [],
         description: listing.description ?? '',
         tags: [],
       }));
@@ -437,7 +438,14 @@ function ListingDetailPage() {
           price_unit,
           city,
           provider_profile_id,
-          category_id
+          category_id,
+          listing_images (
+            id,
+            image_url,
+            storage_path,
+            is_primary,
+            display_order
+          )
         `)
         .eq('slug', slug)
         .eq('status', 'approved')
@@ -456,7 +464,7 @@ function ListingDetailPage() {
           ...baseListing,
           provider_profiles: null,
           service_categories: null,
-          listing_images: [],
+          listing_images: baseListing.listing_images ?? [],
           listing_selected_options: [],
         };
 
@@ -480,18 +488,6 @@ function ListingDetailPage() {
           console.error('[listing-detail] service category query failed:', categoryError.message);
         } else {
           mergedListing.service_categories = categoryData;
-        }
-
-        const { data: imageData, error: imageError } = await supabase
-          .from('listing_images')
-          .select('image_url, storage_path, is_primary, display_order')
-          .eq('listing_id', baseListing.id)
-          .order('is_primary', { ascending: false })
-          .order('display_order', { ascending: true });
-        if (imageError) {
-          console.error('[listing-detail] listing images query failed:', imageError.message);
-        } else {
-          mergedListing.listing_images = imageData ?? [];
         }
 
         const { data: selectedOptionsData, error: selectedOptionsError } = await supabase
@@ -591,8 +587,6 @@ function ListingDetailPage() {
       }
       return (a?.display_order ?? Number.MAX_SAFE_INTEGER) - (b?.display_order ?? Number.MAX_SAFE_INTEGER);
     });
-  const primaryImage = sortedImages[0];
-
   return (
     <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12 pb-20 lg:pb-0">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mb-6">
@@ -722,21 +716,25 @@ function ListingDetailPage() {
 
           <div data-testid="listing-detail-gallery" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">Galerija</h2>
-            {primaryImage?.image_url ? (
-              <img
-                data-testid="listing-detail-image"
-                src={primaryImage.image_url}
-                alt={`Fotografija oglasa ${listing.title}`}
-                className="w-full aspect-video rounded-2xl border border-slate-200 object-cover"
-              />
+            {sortedImages.length > 0 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {sortedImages.map((image: any, index: number) => (
+                  <img
+                    key={image.id ?? image.image_url}
+                    data-testid={index === 0 ? 'listing-detail-image' : undefined}
+                    src={image.image_url}
+                    alt={`Fotografija ${index + 1}`}
+                    className={`w-full object-cover rounded-xl border border-slate-100 ${
+                      index === 0 ? 'col-span-2 h-64' : 'h-36'
+                    }`}
+                    loading="lazy"
+                  />
+                ))}
+              </div>
             ) : (
-              <div className="aspect-video rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/70 flex items-center justify-center text-slate-500">
-                <div className="text-center px-4">
-                  <div className="w-12 h-12 rounded-full bg-white border border-slate-200 flex items-center justify-center mx-auto mb-3">
-                    <ImageOff className="w-6 h-6 text-slate-400" />
-                  </div>
-                  <p className="text-sm font-medium text-slate-600">Trenutno nema dodane fotografije</p>
-                </div>
+              <div className="flex flex-col items-center justify-center h-48 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <ImageOff className="w-6 h-6 text-slate-400 mb-3" />
+                <span className="text-slate-400 text-sm">Trenutno nema dodane fotografije</span>
               </div>
             )}
           </div>

@@ -8,6 +8,10 @@ interface ListingCardProps {
 }
 
 export const ListingCard: React.FC<ListingCardProps> = ({ provider }) => {
+  const primaryImage = provider.listing_images?.find((img) => img.is_primary)
+    ?? provider.listing_images?.[0];
+  const imageUrl = primaryImage?.image_url ?? provider.image;
+
   return (
     <motion.div
       layout
@@ -17,7 +21,8 @@ export const ListingCard: React.FC<ListingCardProps> = ({ provider }) => {
     >
       <div className="relative h-48 overflow-hidden">
         <img
-          src={provider.image}
+          data-testid="listing-card-image"
+          src={imageUrl}
           alt={provider.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           referrerPolicy="no-referrer"
