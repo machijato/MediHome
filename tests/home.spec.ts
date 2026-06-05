@@ -2,6 +2,31 @@ import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
+test.afterAll(async () => {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Cleanup warning: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY.');
+    return;
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+  // Delete related images first (foreign key constraint)
+  const { data: testListings } = await supabase
+    .from('provider_listings')
+    .select('id')
+    .like('title', 'E2E%');
+
+  if (testListings && testListings.length > 0) {
+    const ids = testListings.map((listing) => listing.id);
+    await supabase.from('listing_images').delete().in('listing_id', ids);
+    await supabase.from('listing_selected_options').delete().in('listing_id', ids);
+    await supabase.from('provider_listings').delete().like('title', 'E2E%');
+  }
+});
+
 test('authenticated user can create listing, see it on homepage, and open detail page', async ({ page }) => {
   test.setTimeout(90000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
@@ -152,6 +177,16 @@ test('authenticated user can create listing, see it on homepage, and open detail
     await expect(page.locator('[data-testid="listing-detail-description"]')).toHaveText(
       'Automated authenticated wizard submit flow check.'
     );
+
+    // Cleanup: delete test listing from database
+    const { error: cleanupError } = await supabase
+      .from('provider_listings')
+      .delete()
+      .like('title', 'E2E%');
+
+    if (cleanupError) {
+      console.warn('Cleanup warning:', cleanupError.message);
+    }
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;
