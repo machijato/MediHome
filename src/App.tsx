@@ -756,17 +756,14 @@ function ListingDetailPage() {
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setUser(data.session?.user ?? null);
-      setAuthLoading(false);
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setAuthLoading(false);
     });
 
     return () => {
@@ -788,18 +785,7 @@ export default function App() {
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
-      <Route
-        path="/moj-profil"
-        element={
-          authLoading ? (
-            <main className="max-w-4xl mx-auto px-4 py-10">Učitavanje...</main>
-          ) : user ? (
-            <MyProfilePage user={user} />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
+      <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
     </Routes>
   );
 }
