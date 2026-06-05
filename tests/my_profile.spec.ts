@@ -21,11 +21,17 @@ async function login(page: any) {
 test('authenticated user can view and edit their profile', async ({ page }) => {
   test.setTimeout(60000);
 
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
   await login(page);
 
-  await page.goto('/moj-profil');
-  await page.waitForLoadState('domcontentloaded');
+  // Navigate via navbar link instead of direct goto
+  const profileLink = page.locator('[data-testid="nav-my-profile-link"]');
+  await expect(profileLink).toBeVisible({ timeout: 10000 });
+  await profileLink.click();
 
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page).toHaveURL('/moj-profil');
   await expect(page.locator('[data-testid="my-profile-page"]')).toBeVisible({ timeout: 10000 });
   await expect(page.locator('[data-testid="profile-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="my-listings-section"]')).toBeVisible();
@@ -34,7 +40,6 @@ test('authenticated user can view and edit their profile', async ({ page }) => {
   await expect(page.locator('[data-testid="input-display-name"]')).toBeVisible();
 
   await page.locator('[data-testid="input-display-name"]').fill('Test Korisnik E2E');
-
   await page.locator('[data-testid="save-profile-button"]').click();
   await expect(page.locator('[data-testid="save-success"]')).toBeVisible({ timeout: 10000 });
 });
@@ -51,10 +56,13 @@ test('unauthenticated user is redirected from /moj-profil', async ({ page }) => 
 test('my profile link is visible in navbar when logged in', async ({ page }) => {
   test.setTimeout(30000);
 
+  await page.goto('/');
+  await page.waitForLoadState('domcontentloaded');
   await login(page);
 
   await expect(page.locator('[data-testid="nav-my-profile-link"]')).toBeVisible({ timeout: 10000 });
   await page.locator('[data-testid="nav-my-profile-link"]').click();
+  await page.waitForLoadState('domcontentloaded');
   await expect(page).toHaveURL('/moj-profil');
   await expect(page.locator('[data-testid="my-profile-page"]')).toBeVisible({ timeout: 10000 });
 });
