@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Link, Route, Routes, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
@@ -16,15 +16,15 @@ import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
 import { ResetPassword } from './pages/ResetPassword';
 import { ProviderProfilePage } from './ProviderProfilePage';
+import { MyProfilePage } from './pages/MyProfilePage';
 
-function HomePage() {
+function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => void }) {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [selectedCounty, setSelectedCounty] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
 
   const fetchProviders = useCallback(async () => {
@@ -114,20 +114,6 @@ function HomePage() {
     }
   }, []);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
   const filteredProviders = useMemo(() => {
     return providers.filter((p) => {
       const matchesCategory = activeCategory === 'all' || p.type === activeCategory;
@@ -141,17 +127,12 @@ function HomePage() {
     });
   }, [activeCategory, selectedCounty, searchQuery, providers]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar
         onPostAdClick={() => setIsModalOpen(true)}
         onLoginClick={() => setIsAuthOpen(true)}
-        onLogoutClick={handleLogout}
+        onLogoutClick={onLogoutClick}
         user={user}
       />
 
@@ -774,15 +755,37 @@ function ListingDetailPage() {
 }
 
 export default function App() {
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
+
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<HomePage user={user} onLogoutClick={handleLogout} />} />
       <Route path="/oglas/:slug" element={<ListingDetailPage />} />
       <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
       <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
+      <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
     </Routes>
   );
 }

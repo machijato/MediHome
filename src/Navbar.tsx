@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { MapPin, User, Menu, PlusCircle } from 'lucide-react';
 
 interface NavbarProps {
@@ -34,6 +35,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
             {user ? (
               <div data-testid="auth-user-chip" className="flex items-center gap-3 px-4 py-2 bg-slate-200 rounded-full">
                 <span className="text-sm font-medium">{user.user_metadata?.full_name || user.email}</span>
+                <Link
+                  to="/moj-profil"
+                  data-testid="nav-my-profile-link"
+                  className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
+                >
+                  Moj profil
+                </Link>
                 <button
                   onClick={onLogoutClick}
                   className="text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
