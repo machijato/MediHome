@@ -25,20 +25,18 @@ export const AdSlot: React.FC<AdSlotProps> = ({ slotKey, className = '' }) => {
     const fetchAd = async () => {
       try {
         // 1. Dohvati slot
-        const { data: slot, error: slotError } = await supabase
+        const { data: slot } = await supabase
           .from('ad_slots')
-          .select('id, supports_rotation, rotation_interval_seconds')
+          .select('id, supports_rotation')
           .eq('key', slotKey)
           .eq('is_active', true)
           .maybeSingle();
-
-        console.log('AdSlot slot result:', slot, slotError);
 
         if (!slot) return;
 
         // 2. Dohvati aktivnu kampanju
         const now = new Date().toISOString();
-        const { data: campaign, error: campaignError } = await supabase
+        const { data: campaign } = await supabase
           .from('ad_campaigns')
           .select('id, rotation_interval_seconds')
           .eq('slot_id', slot.id)
@@ -50,27 +48,21 @@ export const AdSlot: React.FC<AdSlotProps> = ({ slotKey, className = '' }) => {
           .limit(1)
           .maybeSingle();
 
-        console.log('AdSlot campaign result:', campaign, campaignError);
-
         if (!campaign) return;
 
         // 3. Dohvati kreative
-        const { data: fetchedCreatives, error: creativesError } = await supabase
+        const { data: fetchedCreatives } = await supabase
           .from('ad_creatives')
           .select('id, image_url, target_url, alt_text, weight')
           .eq('campaign_id', campaign.id)
           .eq('is_active', true)
           .order('weight', { ascending: false });
 
-        console.log('AdSlot creatives result:', fetchedCreatives, creativesError);
-
         if (!fetchedCreatives || fetchedCreatives.length === 0) return;
 
         setCreatives(fetchedCreatives);
         setSupportsRotation(slot.supports_rotation ?? false);
-        setRotationInterval(
-          campaign.rotation_interval_seconds ?? (slot as any).rotation_interval_seconds ?? 5
-        );
+        setRotationInterval(campaign.rotation_interval_seconds ?? 5);
       } catch (err) {
         // Tihi fail — AdSlot ne smije rušiti stranicu
         console.error('AdSlot fetch error:', err);
