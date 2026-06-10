@@ -1,6 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Link, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
@@ -19,15 +19,25 @@ import { ProviderProfilePage } from './ProviderProfilePage';
 import { MyProfilePage } from './pages/MyProfilePage';
 
 function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => void }) {
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [selectedCounty, setSelectedCounty] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeCategory = searchParams.get('cat') ?? 'all';
+  const selectedCounty = searchParams.get('county') ?? 'all';
+  const searchQuery = searchParams.get('q') ?? '';
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const [totalCount, setTotalCount] = useState(0);
+  const pageSize = 12;
+  const currentPage = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
+  const totalPages = Math.ceil(totalCount / pageSize);
 
-  const fetchProviders = useCallback(async () => {
+  const fetchProviders = useCallback(async (
+    catSlug: string,
+    county: string,
+    q: string,
+    page: number,
+  ) => {
     try {
       const { data: categoriesData, error: categoriesError } = await supabase
         .from('service_categories')
@@ -52,17 +62,36 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
         return 'other';
       };
 
-      const { data: listingsData, error: listingsError } = await supabase
+      let query = supabase
         .from('provider_listings')
-        .select('id, slug, title, description, city, price_from, price_unit, category_id, status, listing_images(*)')
+        .select('id, slug, title, description, city, price_from, price_unit, category_id, status, listing_images(*)', { count: 'exact' })
         .eq('status', 'approved');
+
+      if (catSlug && catSlug !== 'all') {
+        const catId = categoriesData?.find((category: any) => category.slug === catSlug)?.id;
+        if (catId) query = query.eq('category_id', catId);
+      }
+
+      if (county && county !== 'all') {
+        query = query.ilike('city', `%${county}%`);
+      }
+
+      if (q && q.trim()) {
+        query = query.or(`title.ilike.%${q.trim()}%,description.ilike.%${q.trim()}%`);
+      }
+
+      const offset = (page - 1) * pageSize;
+      query = query.range(offset, offset + pageSize - 1);
+
+      const { data: listingsData, error: listingsError, count } = await query;
 
       if (listingsError) {
         throw listingsError;
       }
 
       if (!listingsData || listingsData.length === 0) {
-        setProviders(MOCK_PROVIDERS);
+        setProviders([]);
+        setTotalCount(count ?? 0);
         return;
       }
 
@@ -82,18 +111,48 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
       }));
 
       setProviders(mappedProviders);
+      setTotalCount(count ?? 0);
     } catch (error) {
       console.error('Greška pri dohvaćanju oglasa iz Supabasea:', error);
       setProviders(MOCK_PROVIDERS);
+      setTotalCount(MOCK_PROVIDERS.length);
     }
   }, []);
 
   useEffect(() => {
-    fetchProviders();
-  }, [fetchProviders]);
+    fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage);
+  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage]);
 
   const handleCreateListing = async () => {
-    await fetchProviders();
+    await fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      const newCat = activeCategory === value ? 'all' : value;
+      if (newCat === 'all') next.delete('cat'); else next.set('cat', newCat);
+      next.delete('page');
+      return next;
+    });
+  };
+
+  const handleCountyChange = (value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === 'all' || !value) next.delete('county'); else next.set('county', value);
+      next.delete('page');
+      return next;
+    });
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (!value) next.delete('q'); else next.set('q', value);
+      next.delete('page');
+      return next;
+    });
   };
 
 
@@ -113,19 +172,6 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
       window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
     }
   }, []);
-
-  const filteredProviders = useMemo(() => {
-    return providers.filter((p) => {
-      const matchesCategory = activeCategory === 'all' || p.type === activeCategory;
-      const matchesCounty = selectedCounty === 'all' || p.location.includes(selectedCounty);
-      const matchesSearch =
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-
-      return matchesCategory && matchesCounty && matchesSearch;
-    });
-  }, [activeCategory, selectedCounty, searchQuery, providers]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -170,9 +216,9 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
                 <div className="flex-1 relative">
                   <input
                     type="text"
-                    placeholder="Što trebate danas?"
+                    placeholder="pretražite usluge ili opremu"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => handleSearchChange(e.target.value)}
                     className="w-full px-6 py-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all outline-none text-lg"
                   />
                 </div>
@@ -186,7 +232,7 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
 
         <CategorySection
           activeCategory={activeCategory}
-          setActiveCategory={(id) => setActiveCategory(activeCategory === id ? 'all' : id)}
+          setActiveCategory={handleCategoryChange}
         />
 
         <section className="pb-12">
@@ -199,7 +245,7 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => setSelectedCounty('all')}
+                    onClick={() => handleCountyChange('all')}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
                       selectedCounty === 'all'
                         ? 'bg-primary text-white shadow-md'
@@ -211,7 +257,7 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
                   <div className="relative">
                     <select
                       value={selectedCounty === 'all' ? '' : selectedCounty}
-                      onChange={(e) => setSelectedCounty(e.target.value || 'all')}
+                      onChange={(e) => handleCountyChange(e.target.value || 'all')}
                       className="appearance-none pl-4 pr-10 py-2 rounded-full text-sm font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 focus:outline-none"
                     >
                       <option value="">Odaberite županiju</option>
@@ -248,7 +294,7 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               <AnimatePresence mode="popLayout">
-                {filteredProviders.map((provider) => (
+                {providers.map((provider) => (
                   provider.slug ? (
                     <Link key={provider.id} to={`/oglas/${provider.slug}`} data-testid="listing-card" className="block">
                       <ListingCard provider={provider} />
@@ -262,7 +308,42 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
               </AnimatePresence>
             </div>
 
-            {filteredProviders.length === 0 && (
+            {totalPages > 1 && (
+              <div
+                data-testid="pagination"
+                className="flex justify-center items-center gap-3 mt-8"
+              >
+                <button
+                  data-testid="pagination-prev"
+                  disabled={currentPage <= 1}
+                  onClick={() => setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('page', String(currentPage - 1));
+                    return next;
+                  })}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-medium disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                >
+                  ← Prethodna
+                </button>
+                <span className="text-sm text-slate-500">
+                  Stranica {currentPage} od {totalPages}
+                </span>
+                <button
+                  data-testid="pagination-next"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('page', String(currentPage + 1));
+                    return next;
+                  })}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-medium disabled:opacity-40 hover:bg-slate-50 transition-colors"
+                >
+                  Sljedeća →
+                </button>
+              </div>
+            )}
+
+            {providers.length === 0 && (
               <div className="text-center py-20">
                 <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Filter className="w-10 h-10 text-slate-400" />
@@ -271,9 +352,14 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
                 <p className="text-slate-500">Pokušajte promijeniti filtere ili pojam pretrage.</p>
                 <button
                   onClick={() => {
-                    setActiveCategory('all');
-                    setSelectedCounty('all');
-                    setSearchQuery('');
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.delete('cat');
+                      next.delete('county');
+                      next.delete('q');
+                      next.delete('page');
+                      return next;
+                    });
                   }}
                   className="mt-6 text-primary font-bold hover:underline"
                 >
@@ -354,10 +440,10 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
             <div>
               <h4 className="font-bold text-slate-900 mb-6">Usluge</h4>
               <ul className="space-y-4 text-sm text-slate-500">
-                <li><button onClick={() => setActiveCategory('physio')} className="hover:text-primary transition-colors text-left">Fizikalna terapija</button></li>
-                <li><button onClick={() => setActiveCategory('nurse')} className="hover:text-primary transition-colors text-left">Medicinska njega</button></li>
-                <li><button onClick={() => setActiveCategory('equipment')} className="hover:text-primary transition-colors text-left">Najam opreme</button></li>
-                <li><button onClick={() => setActiveCategory('other')} className="hover:text-primary transition-colors text-left">Ljekarne i dućani</button></li>
+                <li><button onClick={() => handleCategoryChange('fizioterapeut')} className="hover:text-primary transition-colors text-left">Fizikalna terapija</button></li>
+                <li><button onClick={() => handleCategoryChange('kucna-njega')} className="hover:text-primary transition-colors text-left">Medicinska njega</button></li>
+                <li><button onClick={() => handleCategoryChange('najam-opreme')} className="hover:text-primary transition-colors text-left">Najam opreme</button></li>
+                <li><button onClick={() => handleCategoryChange('ljekarne-i-ducani')} className="hover:text-primary transition-colors text-left">Ljekarne i dućani</button></li>
               </ul>
             </div>
 
