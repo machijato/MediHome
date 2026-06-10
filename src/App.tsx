@@ -17,8 +17,10 @@ import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
 import { ResetPassword } from './pages/ResetPassword';
 import { ProviderProfilePage } from './ProviderProfilePage';
 import { MyProfilePage } from './pages/MyProfilePage';
+import { AdminPage } from './pages/AdminPage';
+import { useAdmin } from './hooks/useAdmin';
 
-function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => void }) {
+function HomePage({ user, onLogoutClick, isAdmin }: { user: any; onLogoutClick: () => void; isAdmin: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('cat') ?? 'all';
   const selectedCounty = searchParams.get('county') ?? 'all';
@@ -180,6 +182,7 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
         onLoginClick={() => setIsAuthOpen(true)}
         onLogoutClick={onLogoutClick}
         user={user}
+        isAdmin={isAdmin}
       />
 
       <main className="flex-1">
@@ -842,6 +845,7 @@ function ListingDetailPage() {
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
+  const { isAdmin } = useAdmin(user?.id);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -864,7 +868,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage user={user} onLogoutClick={handleLogout} />} />
+      <Route path="/" element={<HomePage user={user} onLogoutClick={handleLogout} isAdmin={isAdmin} />} />
       <Route path="/oglas/:slug" element={<ListingDetailPage />} />
       <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
       <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
@@ -872,6 +876,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
       <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
+      <Route path="/admin" element={isAdmin ? <AdminPage user={user} /> : <Navigate to="/" replace />} />
     </Routes>
   );
 }
