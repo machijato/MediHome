@@ -123,6 +123,71 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     setUploadPreviews(uploadPreviews.filter((_, i) => i !== index));
   };
 
+  const saveSelectedOptions = async (listingId: string, categoryId: string, selectedOptionLabels: string[]) => {
+    if (selectedOptionLabels.length === 0) {
+      return;
+    }
+
+    const { data: optionsData, error: optionsError } = await supabase
+      .from('service_option_groups')
+      .select('service_options(id, label)')
+      .eq('category_id', categoryId);
+
+    const fetchedServiceOptions = (optionsData ?? [])
+      .flatMap((group: any) => group.service_options ?? []);
+    const fetchedOptionLabels = fetchedServiceOptions.map((option: any) => option.label);
+    const missingLabels = selectedOptionLabels.filter(
+      (label) => !fetchedOptionLabels.includes(label)
+    );
+
+    if (optionsError) {
+      console.error('Greška pri dohvaćanju service_options za odabrane opcije oglasa:', {
+        selectedOptionLabels,
+        fetchedServiceOptions,
+        missingLabels: selectedOptionLabels,
+        supabaseInsertError: optionsError,
+      });
+      return;
+    }
+
+    if (missingLabels.length > 0) {
+      console.error('Neke odabrane opcije nisu pronađene u service_options i neće blokirati spremanje oglasa:', {
+        selectedOptionLabels,
+        fetchedServiceOptions,
+        missingLabels,
+        supabaseInsertError: null,
+      });
+    }
+
+    const optionIds = Array.from(new Set(
+      fetchedServiceOptions
+        .filter((option: any) => selectedOptionLabels.includes(option.label))
+        .map((option: any) => option.id)
+    ));
+
+    if (optionIds.length === 0) {
+      return;
+    }
+
+    const selectedOptionsRows = optionIds.map((optionId) => ({
+      listing_id: listingId,
+      option_id: optionId,
+    }));
+
+    const { error: selectedOptionsError } = await supabase
+      .from('listing_selected_options')
+      .insert(selectedOptionsRows);
+
+    if (selectedOptionsError) {
+      console.error('Greška pri unosu listing_selected_options; oglas i slike nastavljaju se spremati bez blokiranja modala:', {
+        selectedOptionLabels,
+        fetchedServiceOptions,
+        missingLabels,
+        supabaseInsertError: selectedOptionsError,
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     setSubmitError('');
     setSubmitSuccess(false);
@@ -146,6 +211,13 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     }
 
     let listingIdForImages: string | null = null;
+    const selectedOptionLabels = [
+      ...(formData.specialization ?? []),
+      ...(formData.methods ?? []),
+      ...(formData.services ?? []),
+      ...(formData.workTypes.includes('teren') ? ['Dolazak u dom / teren'] : []),
+      ...(formData.workTypes.includes('ustanova') ? ['Rad u ustanovi / ordinaciji'] : []),
+    ];
 
     if (isEditMode && editListing?.id) {
       const { error: updateError } = await supabase
@@ -169,6 +241,29 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       }
 
       listingIdForImages = editListing.id;
+
+      const { data: category, error: categoryError } = await supabase
+        .from('service_categories')
+        .select('id')
+        .eq('slug', formData.type)
+        .maybeSingle();
+
+      if (categoryError) {
+        console.error('Greška pri dohvaćanju kategorije za ažuriranje opcija oglasa:', categoryError);
+      }
+
+      const { error: deleteOptionsError } = await supabase
+        .from('listing_selected_options')
+        .delete()
+        .eq('listing_id', editListing.id);
+
+      if (deleteOptionsError) {
+        console.error('Greška pri brisanju postojećih listing_selected_options; spremanje oglasa se nastavlja:', deleteOptionsError);
+      }
+
+      if (category?.id) {
+        await saveSelectedOptions(editListing.id, category.id, selectedOptionLabels);
+      }
     } else {
       const { data: providerProfile, error: providerProfileError } = await supabase
         .from('provider_profiles')
@@ -234,76 +329,19 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
       listingIdForImages = insertedListing.id;
 
-      const selectedOptionLabels = [
-        ...(formData.specialization ?? []),
-        ...(formData.methods ?? []),
-        ...(formData.services ?? []),
-        ...(formData.workTypes.includes('teren') ? ['Dolazak u dom / teren'] : []),
-        ...(formData.workTypes.includes('ustanova') ? ['Rad u ustanovi / ordinaciji'] : []),
-      ];
-
-      if (selectedOptionLabels.length > 0) {
-        const { data: optionsData, error: optionsError } = await supabase
-          .from('service_option_groups')
-          .select('service_options(id, label)')
-          .eq('category_id', category.id);
-
-        const fetchedServiceOptions = (optionsData ?? [])
-          .flatMap((group: any) => group.service_options ?? []);
-        const fetchedOptionLabels = fetchedServiceOptions.map((option: any) => option.label);
-        const missingLabels = selectedOptionLabels.filter(
-          (label) => !fetchedOptionLabels.includes(label)
-        );
-
-        if (optionsError) {
-          console.error('Greška pri dohvaćanju service_options za odabrane opcije oglasa:', {
-            selectedOptionLabels,
-            fetchedServiceOptions,
-            missingLabels: selectedOptionLabels,
-            supabaseInsertError: optionsError,
-          });
-        } else {
-          if (missingLabels.length > 0) {
-            console.error('Neke odabrane opcije nisu pronađene u service_options i neće blokirati spremanje oglasa:', {
-              selectedOptionLabels,
-              fetchedServiceOptions,
-              missingLabels,
-              supabaseInsertError: null,
-            });
-          }
-
-          const optionIds = Array.from(new Set(
-            fetchedServiceOptions
-              .filter((option: any) => selectedOptionLabels.includes(option.label))
-              .map((option: any) => option.id)
-          ));
-
-          if (optionIds.length > 0) {
-            const selectedOptionsRows = optionIds.map((optionId) => ({
-              listing_id: listingIdForImages,
-              option_id: optionId,
-            }));
-
-            const { error: selectedOptionsError } = await supabase
-              .from('listing_selected_options')
-              .insert(selectedOptionsRows);
-
-            if (selectedOptionsError) {
-              console.error('Greška pri unosu listing_selected_options; oglas i slike nastavljaju se spremati bez blokiranja modala:', {
-                selectedOptionLabels,
-                fetchedServiceOptions,
-                missingLabels,
-                supabaseInsertError: selectedOptionsError,
-              });
-            }
-          }
-        }
-      }
+      await saveSelectedOptions(insertedListing.id, category.id, selectedOptionLabels);
     }
 
     if (selectedFiles.length > 0 && listingIdForImages) {
       setIsUploading(true);
       try {
+        if (isEditMode && editListing?.id) {
+          await supabase
+            .from('listing_images')
+            .delete()
+            .eq('listing_id', editListing.id);
+        }
+
         for (let i = 0; i < selectedFiles.length; i += 1) {
           const file = selectedFiles[i];
           const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
