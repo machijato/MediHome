@@ -146,7 +146,7 @@ test('authenticated user can create listing and see pending success screen', asy
       password: process.env.E2E_AUTH_PASSWORD ?? 'Maki4321',
     });
 
-    // Get listing id by unique title
+    // Cleanup by exact title
     const { data: listingToDelete } = await supabase
       .from('provider_listings')
       .select('id')
