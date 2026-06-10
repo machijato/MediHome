@@ -845,7 +845,7 @@ function ListingDetailPage() {
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
-  const { isAdmin } = useAdmin(user?.id);
+  const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -876,7 +876,20 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
       <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
-      <Route path="/admin" element={isAdmin ? <AdminPage user={user} /> : <Navigate to="/" replace />} />
+      <Route
+        path="/admin"
+        element={
+          adminLoading ? (
+            <div className="flex items-center justify-center min-h-screen">
+              <p className="text-slate-500">Učitavanje...</p>
+            </div>
+          ) : isAdmin ? (
+            <AdminPage user={user} />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        }
+      />
     </Routes>
   );
 }
