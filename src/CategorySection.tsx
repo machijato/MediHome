@@ -8,6 +8,13 @@ interface CategorySectionProps {
   setActiveCategory: (id: string) => void;
 }
 
+const CATEGORY_SLUG_BY_ID: Record<string, string> = {
+  physio: 'fizioterapeut',
+  nurse: 'kucna-njega',
+  equipment: 'najam-opreme',
+  transport: 'sanitetski-prijevoz',
+};
+
 export const CategorySection: React.FC<CategorySectionProps> = ({ activeCategory, setActiveCategory }) => {
   return (
     <section className="py-16">
@@ -20,13 +27,18 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ activeCategory
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {CATEGORIES.map((cat) => (
+          {CATEGORIES.map((cat) => {
+            const categorySlug = CATEGORY_SLUG_BY_ID[cat.id] ?? cat.id;
+            const isActive = activeCategory === categorySlug;
+
+            return (
             <button
               key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
+              data-testid={`category-filter-${categorySlug}`}
+              onClick={() => setActiveCategory(categorySlug)}
               className={`flex flex-col group rounded-3xl overflow-hidden border-2 transition-all text-left bg-white ${
-                activeCategory === cat.id 
-                  ? 'border-primary shadow-xl scale-[1.02]' 
+                isActive
+                  ? 'border-primary shadow-xl scale-[1.02]'
                   : 'border-transparent shadow-md hover:border-slate-200'
               }`}
             >
@@ -42,7 +54,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ activeCategory
               
               <div className="p-5 flex-1 flex flex-col">
                 <h3 className={`text-lg font-bold mb-1 transition-colors ${
-                  activeCategory === cat.id ? 'text-primary' : 'text-slate-900'
+                  isActive ? 'text-primary' : 'text-slate-900'
                 }`}>
                   {cat.name}
                 </h3>
@@ -56,13 +68,14 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ activeCategory
                 </div>
               </div>
               
-              {activeCategory === cat.id && (
+              {isActive && (
                 <div className="absolute top-3 right-3 w-7 h-7 bg-primary rounded-full flex items-center justify-center text-white shadow-lg">
                   <Search className="w-3 h-3" />
                 </div>
               )}
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
