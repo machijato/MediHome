@@ -9,9 +9,19 @@ interface CreateListingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: () => Promise<void> | void;
+  editListing?: {
+    id: string;
+    title: string;
+    description: string;
+    price_from: number;
+    price_unit: string;
+    city: string;
+    category_slug: string;
+  } | null;
 }
 
-export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, onClose, onSubmit, editListing = null }) => {
+  const isEditMode = Boolean(editListing);
   const [step, setStep] = useState(1);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -119,6 +129,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     setIsSubmitting(true);
 
     const priceFrom = Number.parseFloat(formData.price.replace(',', '.'));
+    const selectedCity = formData.locations[0] || editListing?.city || '';
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) {
@@ -134,141 +145,169 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       return;
     }
 
-    const { data: providerProfile, error: providerProfileError } = await supabase
-      .from('provider_profiles')
-      .select('id')
-      .eq('user_id', userData.user.id)
-      .maybeSingle();
+    let listingIdForImages: string | null = null;
 
-    if (providerProfileError) {
-      console.error('Greška pri dohvaćanju provider profila:', providerProfileError);
-      setSubmitError('Došlo je do greške pri pronalasku profila pružatelja usluge.');
-      setIsSubmitting(false);
-      return;
-    }
+    if (isEditMode && editListing?.id) {
+      const { error: updateError } = await supabase
+        .from('provider_listings')
+        .update({
+          title: formData.name,
+          description: formData.description,
+          price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
+          price_unit: 'EUR',
+          city: selectedCity,
+          status: 'pending',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', editListing.id);
 
-    if (!providerProfile?.id) {
-      setSubmitError('Vaš korisnički račun još nema profil pružatelja usluge.');
-      setIsSubmitting(false);
-      return;
-    }
+      if (updateError) {
+        console.error('Greška pri ažuriranju oglasa u Supabase:', updateError);
+        setSubmitError('Greška pri ažuriranju oglasa.');
+        setIsSubmitting(false);
+        return;
+      }
 
-    const { data: category, error: categoryError } = await supabase
-      .from('service_categories')
-      .select('id')
-      .eq('slug', formData.type)
-      .maybeSingle();
+      listingIdForImages = editListing.id;
+    } else {
+      const { data: providerProfile, error: providerProfileError } = await supabase
+        .from('provider_profiles')
+        .select('id')
+        .eq('user_id', userData.user.id)
+        .maybeSingle();
 
-    if (categoryError) {
-      console.error('Greška pri dohvaćanju kategorije:', categoryError);
-      setSubmitError('Došlo je do greške pri odabiru kategorije. Pokušajte ponovno.');
-      setIsSubmitting(false);
-      return;
-    }
+      if (providerProfileError) {
+        console.error('Greška pri dohvaćanju provider profila:', providerProfileError);
+        setSubmitError('Došlo je do greške pri pronalasku profila pružatelja usluge.');
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (!category?.id) {
-      setSubmitError('Odabrana kategorija trenutno nije dostupna.');
-      setIsSubmitting(false);
-      return;
-    }
+      if (!providerProfile?.id) {
+        setSubmitError('Vaš korisnički račun još nema profil pružatelja usluge.');
+        setIsSubmitting(false);
+        return;
+      }
 
-    const generatedSlug = generateListingSlug(formData.name);
+      const { data: category, error: categoryError } = await supabase
+        .from('service_categories')
+        .select('id')
+        .eq('slug', formData.type)
+        .maybeSingle();
 
-    const { data: insertedListing, error: listingError } = await supabase
-      .from('provider_listings')
-      .insert({
-        title: formData.name,
-        slug: generatedSlug,
-        description: formData.description,
-        city: formData.locations[0] || '',
-        price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
-        price_unit: 'EUR',
-        category_id: category.id,
-        provider_profile_id: providerProfile.id,
-      })
-      .select('id')
-      .single();
+      if (categoryError) {
+        console.error('Greška pri dohvaćanju kategorije:', categoryError);
+        setSubmitError('Došlo je do greške pri odabiru kategorije. Pokušajte ponovno.');
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (listingError || !insertedListing?.id) {
-      console.error('Greška pri unosu oglasa u Supabase:', listingError);
-      setSubmitError('Došlo je do greške pri spremanju oglasa. Pokušajte ponovno.');
-      setIsSubmitting(false);
-      return;
-    }
+      if (!category?.id) {
+        setSubmitError('Odabrana kategorija trenutno nije dostupna.');
+        setIsSubmitting(false);
+        return;
+      }
 
-    const selectedOptionLabels = [
-      ...(formData.specialization ?? []),
-      ...(formData.methods ?? []),
-      ...(formData.services ?? []),
-      ...(formData.workTypes.includes('teren') ? ['Dolazak u dom / teren'] : []),
-      ...(formData.workTypes.includes('ustanova') ? ['Rad u ustanovi / ordinaciji'] : []),
-    ];
+      const generatedSlug = generateListingSlug(formData.name);
 
-    if (selectedOptionLabels.length > 0) {
-      const { data: optionsData, error: optionsError } = await supabase
-        .from('service_option_groups')
-        .select('service_options(id, label)')
-        .eq('category_id', category.id);
+      const { data: insertedListing, error: listingError } = await supabase
+        .from('provider_listings')
+        .insert({
+          title: formData.name,
+          slug: generatedSlug,
+          description: formData.description,
+          city: formData.locations[0] || '',
+          price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
+          price_unit: 'EUR',
+          category_id: category.id,
+          provider_profile_id: providerProfile.id,
+        })
+        .select('id')
+        .single();
 
-      const fetchedServiceOptions = (optionsData ?? [])
-        .flatMap((group: any) => group.service_options ?? []);
-      const fetchedOptionLabels = fetchedServiceOptions.map((option: any) => option.label);
-      const missingLabels = selectedOptionLabels.filter(
-        (label) => !fetchedOptionLabels.includes(label)
-      );
+      if (listingError || !insertedListing?.id) {
+        console.error('Greška pri unosu oglasa u Supabase:', listingError);
+        setSubmitError('Došlo je do greške pri spremanju oglasa. Pokušajte ponovno.');
+        setIsSubmitting(false);
+        return;
+      }
 
-      if (optionsError) {
-        console.error('Greška pri dohvaćanju service_options za odabrane opcije oglasa:', {
-          selectedOptionLabels,
-          fetchedServiceOptions,
-          missingLabels: selectedOptionLabels,
-          supabaseInsertError: optionsError,
-        });
-      } else {
-        if (missingLabels.length > 0) {
-          console.error('Neke odabrane opcije nisu pronađene u service_options i neće blokirati spremanje oglasa:', {
+      listingIdForImages = insertedListing.id;
+
+      const selectedOptionLabels = [
+        ...(formData.specialization ?? []),
+        ...(formData.methods ?? []),
+        ...(formData.services ?? []),
+        ...(formData.workTypes.includes('teren') ? ['Dolazak u dom / teren'] : []),
+        ...(formData.workTypes.includes('ustanova') ? ['Rad u ustanovi / ordinaciji'] : []),
+      ];
+
+      if (selectedOptionLabels.length > 0) {
+        const { data: optionsData, error: optionsError } = await supabase
+          .from('service_option_groups')
+          .select('service_options(id, label)')
+          .eq('category_id', category.id);
+
+        const fetchedServiceOptions = (optionsData ?? [])
+          .flatMap((group: any) => group.service_options ?? []);
+        const fetchedOptionLabels = fetchedServiceOptions.map((option: any) => option.label);
+        const missingLabels = selectedOptionLabels.filter(
+          (label) => !fetchedOptionLabels.includes(label)
+        );
+
+        if (optionsError) {
+          console.error('Greška pri dohvaćanju service_options za odabrane opcije oglasa:', {
             selectedOptionLabels,
             fetchedServiceOptions,
-            missingLabels,
-            supabaseInsertError: null,
+            missingLabels: selectedOptionLabels,
+            supabaseInsertError: optionsError,
           });
-        }
-
-        const optionIds = Array.from(new Set(
-          fetchedServiceOptions
-            .filter((option: any) => selectedOptionLabels.includes(option.label))
-            .map((option: any) => option.id)
-        ));
-
-        if (optionIds.length > 0) {
-          const selectedOptionsRows = optionIds.map((optionId) => ({
-            listing_id: insertedListing.id,
-            option_id: optionId,
-          }));
-
-          const { error: selectedOptionsError } = await supabase
-            .from('listing_selected_options')
-            .insert(selectedOptionsRows);
-
-          if (selectedOptionsError) {
-            console.error('Greška pri unosu listing_selected_options; oglas i slike nastavljaju se spremati bez blokiranja modala:', {
+        } else {
+          if (missingLabels.length > 0) {
+            console.error('Neke odabrane opcije nisu pronađene u service_options i neće blokirati spremanje oglasa:', {
               selectedOptionLabels,
               fetchedServiceOptions,
               missingLabels,
-              supabaseInsertError: selectedOptionsError,
+              supabaseInsertError: null,
             });
+          }
+
+          const optionIds = Array.from(new Set(
+            fetchedServiceOptions
+              .filter((option: any) => selectedOptionLabels.includes(option.label))
+              .map((option: any) => option.id)
+          ));
+
+          if (optionIds.length > 0) {
+            const selectedOptionsRows = optionIds.map((optionId) => ({
+              listing_id: listingIdForImages,
+              option_id: optionId,
+            }));
+
+            const { error: selectedOptionsError } = await supabase
+              .from('listing_selected_options')
+              .insert(selectedOptionsRows);
+
+            if (selectedOptionsError) {
+              console.error('Greška pri unosu listing_selected_options; oglas i slike nastavljaju se spremati bez blokiranja modala:', {
+                selectedOptionLabels,
+                fetchedServiceOptions,
+                missingLabels,
+                supabaseInsertError: selectedOptionsError,
+              });
+            }
           }
         }
       }
     }
 
-    if (selectedFiles.length > 0 && insertedListing?.id) {
+    if (selectedFiles.length > 0 && listingIdForImages) {
       setIsUploading(true);
       try {
         for (let i = 0; i < selectedFiles.length; i += 1) {
           const file = selectedFiles[i];
           const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-          const storagePath = `${insertedListing.id}/${Date.now()}-${sanitizedName}`;
+          const storagePath = `${listingIdForImages}/${Date.now()}-${sanitizedName}`;
 
           const { error: uploadError } = await supabase.storage
             .from('listing-images')
@@ -288,7 +327,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
           }
 
           await supabase.from('listing_images').insert({
-            listing_id: insertedListing.id,
+            listing_id: listingIdForImages,
             image_url: urlData.publicUrl,
             storage_path: storagePath,
             is_primary: i === 0,
@@ -331,6 +370,20 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (editListing) {
+      setFormData(prev => ({
+        ...prev,
+        name: editListing.title ?? '',
+        description: editListing.description ?? '',
+        price: String(editListing.price_from ?? ''),
+        type: editListing.category_slug ?? 'fizioterapeut',
+        locations: editListing.city ? [editListing.city] : prev.locations,
+      }));
+      setStep(2);
+    }
+  }, [editListing]);
+
   useEffect(() => () => {
     uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
   }, [uploadPreviews]);
@@ -357,13 +410,13 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-white sticky top-0 z-10">
               <div className="flex items-center gap-4">
-                {step > 1 && (
+                {step > (isEditMode ? 2 : 1) && (
                   <button onClick={prevStep} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                     <ChevronLeft className="w-6 h-6 text-slate-600" />
                   </button>
                 )}
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-900">Objavi oglas</h2>
+                  <h2 className="text-2xl font-bold text-slate-900">{isEditMode ? 'Uredi oglas' : 'Objavi oglas'}</h2>
                   <p className="text-sm text-slate-500">Korak {step} od 4</p>
                 </div>
               </div>
@@ -653,10 +706,13 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
                       <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900">Oglas je poslan na pregled!</h3>
+                    <h3 className="text-xl font-bold text-slate-900">
+                      {isEditMode ? 'Izmjene su poslane na pregled!' : 'Oglas je poslan na pregled!'}
+                    </h3>
                     <p className="text-slate-500 text-sm max-w-xs">
-                      Vaš oglas je uspješno kreiran i čeka odobrenje administratora.
-                      Bit ćete obaviješteni kada bude objavljen.
+                      {isEditMode
+                        ? 'Vaše izmjene čekaju odobrenje administratora.'
+                        : 'Vaš oglas je uspješno kreiran i čeka odobrenje administratora.'}
                     </p>
                     <button
                       type="button"
@@ -725,7 +781,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 <p className="text-sm text-red-600" data-testid="error-message">{submitError}</p>
               )}
               <div className="flex gap-3">
-                {step > 1 && (
+                {step > (isEditMode ? 2 : 1) && (
                   <button
                     type="button"
                     onClick={prevStep}
@@ -759,7 +815,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                     data-testid="submit-listing"
                     className="px-8 py-2 bg-primary text-white font-bold rounded-xl hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
                   >
-                    {isUploading ? 'Učitavanje slika...' : isSubmitting ? 'Objavljujem...' : 'Objavi oglas'}
+                    {isUploading ? 'Učitavanje slika...' : isSubmitting ? 'Objavljujem...' : isEditMode ? 'Spremi izmjene' : 'Objavi oglas'}
                   </button>
                   </>
                 )}

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { CreateListingModal } from '../CreateListingModal';
 
 interface MyProfilePageProps {
   user: any;
@@ -14,6 +15,8 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [editingListing, setEditingListing] = useState<any>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [formData, setFormData] = useState({
     display_name: '',
     phone: '',
@@ -22,6 +25,20 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
     city: '',
     bio: '',
   });
+
+  const mapListings = (rows: any[] | null) => (rows ?? []).map((listing: any) => ({
+    ...listing,
+    category_slug: listing.service_categories?.slug ?? 'fizioterapeut',
+  }));
+
+  const refreshListings = async (profileId: string) => {
+    const { data } = await supabase
+      .from('provider_listings')
+      .select('id, slug, title, description, status, city, price_from, price_unit, created_at, category_id, service_categories(slug)')
+      .eq('provider_profile_id', profileId)
+      .order('created_at', { ascending: false });
+    setListings(mapListings(data ?? []));
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -46,12 +63,7 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
         }
 
         if (profileData?.id) {
-          const { data: listingsData } = await supabase
-            .from('provider_listings')
-            .select('id, slug, title, status, city, price_from, price_unit, created_at')
-            .eq('provider_profile_id', profileData.id)
-            .order('created_at', { ascending: false });
-          setListings(listingsData ?? []);
+          await refreshListings(profileData.id);
         }
       } finally {
         setLoading(false);
@@ -202,6 +214,16 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
                           Pregledaj
                         </Link>
                       )}
+                      <button
+                        data-testid="edit-listing-button"
+                        onClick={() => {
+                          setEditingListing(listing);
+                          setShowEditModal(true);
+                        }}
+                        className="text-sm text-slate-500 hover:text-primary transition-colors px-3 py-1 border border-slate-200 rounded-lg hover:border-primary/30"
+                      >
+                        Uredi
+                      </button>
                       {listing.status === 'approved' && (
                         <button
                           data-testid="deactivate-listing-button"
@@ -219,6 +241,28 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
           </div>
         </>
       )}
+
+      <CreateListingModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingListing(null);
+        }}
+        onSubmit={async () => {
+          if (profile?.id) {
+            await refreshListings(profile.id);
+          }
+        }}
+        editListing={editingListing ? {
+          id: editingListing.id,
+          title: editingListing.title,
+          description: editingListing.description ?? '',
+          price_from: editingListing.price_from,
+          price_unit: editingListing.price_unit,
+          city: editingListing.city,
+          category_slug: editingListing.category_slug ?? 'fizioterapeut',
+        } : null}
+      />
     </main>
   );
 }
