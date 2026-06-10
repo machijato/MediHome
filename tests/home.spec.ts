@@ -2,31 +2,6 @@ import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
-test.afterAll(async () => {
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    console.warn('Cleanup warning: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY.');
-    return;
-  }
-
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-  // Delete related images first (foreign key constraint)
-  const { data: testListings } = await supabase
-    .from('provider_listings')
-    .select('id')
-    .like('title', 'E2E%');
-
-  if (testListings && testListings.length > 0) {
-    const ids = testListings.map((listing) => listing.id);
-    await supabase.from('listing_images').delete().in('listing_id', ids);
-    await supabase.from('listing_selected_options').delete().in('listing_id', ids);
-    await supabase.from('provider_listings').delete().like('title', 'E2E%');
-  }
-});
-
 test('authenticated user can create listing, see it on homepage, and open detail page', async ({ page }) => {
   test.setTimeout(90000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
@@ -41,7 +16,7 @@ test('authenticated user can create listing, see it on homepage, and open detail
     throw new Error('Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY for DB verification in E2E test.');
   }
 
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const verificationSupabase = createClient(supabaseUrl, supabaseAnonKey);
 
   page.on('console', (msg) => {
     const log = `[${msg.type()}] ${msg.text()}`;
@@ -149,7 +124,7 @@ test('authenticated user can create listing, see it on homepage, and open detail
       `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
     ).toBeVisible({ timeout: 20000 });
 
-    const { data: listing, error: queryError } = await supabase
+    const { data: listing, error: queryError } = await verificationSupabase
       .from('provider_listings')
       .select('title, slug, status, category_id, provider_profile_id')
       .eq('title', uniqueTitle)
@@ -178,15 +153,32 @@ test('authenticated user can create listing, see it on homepage, and open detail
       'Automated authenticated wizard submit flow check.'
     );
 
-    // Cleanup: delete test listing from database
-    const { error: cleanupError } = await supabase
-      .from('provider_listings')
-      .delete()
-      .like('title', 'E2E%');
+    const supabase = createClient(
+      process.env.VITE_SUPABASE_URL!,
+      process.env.VITE_SUPABASE_ANON_KEY!
+    );
 
-    if (cleanupError) {
-      console.warn('Cleanup warning:', cleanupError.message);
+    // Sign in as the test user to get authenticated session for cleanup
+    await supabase.auth.signInWithPassword({
+      email: process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com',
+      password: process.env.E2E_AUTH_PASSWORD ?? 'Maki4321',
+    });
+
+    // Get listing id by unique title
+    const { data: listingToDelete } = await supabase
+      .from('provider_listings')
+      .select('id')
+      .eq('title', uniqueTitle)
+      .maybeSingle();
+
+    if (listingToDelete?.id) {
+      await supabase.from('listing_images').delete().eq('listing_id', listingToDelete.id);
+      await supabase.from('listing_selected_options').delete().eq('listing_id', listingToDelete.id);
+      await supabase.from('provider_listings').delete().eq('id', listingToDelete.id);
     }
+
+    // Sign out after cleanup
+    await supabase.auth.signOut();
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;
