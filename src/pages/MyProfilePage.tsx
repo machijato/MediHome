@@ -197,7 +197,7 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
                       <p className="text-sm text-slate-500">{listing.city} · {listing.price_from} {listing.price_unit}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {listing.slug && (
+                      {listing.slug && listing.status === 'approved' && (
                         <Link to={`/oglas/${listing.slug}`} data-testid="my-listing-view-link" className="text-sm text-primary hover:underline">
                           Pregledaj
                         </Link>
