@@ -110,8 +110,31 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from<File>(e.target.files ?? []);
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const invalidFiles = files.filter((file) => !allowedTypes.includes(file.type));
+    if (invalidFiles.length > 0) {
+      uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setSelectedFiles([]);
+      setUploadPreviews([]);
+      setSubmitError('Dozvoljeni formati su: JPG, PNG, WebP. GIF i drugi formati nisu podržani.');
+      e.target.value = '';
+      return;
+    }
+
+    const oversizedFiles = files.filter((file) => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setSelectedFiles([]);
+      setUploadPreviews([]);
+      setSubmitError('Maksimalna veličina slike je 5MB.');
+      e.target.value = '';
+      return;
+    }
+
+    setSubmitError('');
     uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
-    const files = e.currentTarget.files ? Array.from<File>(e.currentTarget.files) : [];
     const limited = files.slice(0, 3);
     setSelectedFiles(limited);
     setUploadPreviews(limited.map((file) => URL.createObjectURL(file)));
@@ -352,8 +375,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             .upload(storagePath, file, { upsert: false });
 
           if (uploadError) {
-            console.error(`Greška pri uploadu slike ${i + 1}:`, uploadError);
-            continue;
+            throw uploadError;
           }
 
           const { data: urlData } = supabase.storage
@@ -372,8 +394,9 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             display_order: i,
           });
         }
-      } catch (error) {
-        console.error('Greška pri uploadu slika:', error);
+      } catch (err) {
+        console.error('Greška pri uploadu slika:', err);
+        setSubmitError('Greška pri uploadu slike. Oglas je spremljen bez fotografije.');
       } finally {
         setIsUploading(false);
       }
