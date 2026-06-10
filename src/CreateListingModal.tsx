@@ -355,6 +355,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       await saveSelectedOptions(insertedListing.id, category.id, selectedOptionLabels);
     }
 
+    let hasUploadError = false;
+
     if (selectedFiles.length > 0 && listingIdForImages) {
       setIsUploading(true);
       try {
@@ -395,6 +397,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
           });
         }
       } catch (err) {
+        hasUploadError = true;
         console.error('Greška pri uploadu slika:', err);
         setSubmitError('Greška pri uploadu slike. Oglas je spremljen bez fotografije.');
       } finally {
@@ -402,7 +405,13 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       }
     }
 
-    setSubmitSuccess(true);
+    if (!hasUploadError) {
+      setSubmitSuccess(true);
+    } else {
+      setIsSubmitting(false);
+      return;
+    }
+
     setIsSubmitting(false);
   };
 
@@ -828,6 +837,12 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
               )}
             </div>
 
+            {submitError && (
+              <div className="px-6 py-3 border-t border-slate-100 bg-white">
+                <p className="text-sm text-red-600" data-testid="error-message">{submitError}</p>
+              </div>
+            )}
+
             {/* Footer */}
             {!submitSuccess && (
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center sticky bottom-0 z-10">
@@ -838,9 +853,6 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
               >
                 Odustani
               </button>
-              {submitError && (
-                <p className="text-sm text-red-600" data-testid="error-message">{submitError}</p>
-              )}
               <div className="flex gap-3">
                 {step > (isEditMode ? 2 : 1) && (
                   <button
