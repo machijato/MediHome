@@ -77,7 +77,7 @@ function HomePage({ user, onLogoutClick }: { user: any; onLogoutClick: () => voi
       }
 
       if (q && q.trim()) {
-        query = query.ilike('title', `%${q.trim()}%`);
+        query = query.or(`title.ilike.%${q.trim()}%,description.ilike.%${q.trim()}%`);
       }
 
       const offset = (page - 1) * pageSize;
