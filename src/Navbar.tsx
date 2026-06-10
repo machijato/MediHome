@@ -7,9 +7,10 @@ interface NavbarProps {
   onLoginClick: () => void;
   onLogoutClick: () => void;
   user?: any;
+  isAdmin?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onLogoutClick, user }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onLogoutClick, user, isAdmin = false }) => {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -42,6 +43,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
                 >
                   Moj profil
                 </Link>
+                {isAdmin && (
+                  <Link
+                    to="/admin"
+                    data-testid="nav-admin-link"
+                    className="text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors"
+                  >
+                    Admin
+                  </Link>
+                )}
                 <button
                   onClick={onLogoutClick}
                   className="text-xs font-semibold text-slate-700 hover:text-slate-900 transition-colors"
