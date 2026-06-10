@@ -18,6 +18,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploadPreviews, setUploadPreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     type: 'fizioterapeut',
@@ -100,7 +101,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
-    const files = Array.from(e.target.files ?? []);
+    const files = e.currentTarget.files ? Array.from<File>(e.currentTarget.files) : [];
     const limited = files.slice(0, 3);
     setSelectedFiles(limited);
     setUploadPreviews(limited.map((file) => URL.createObjectURL(file)));
@@ -114,6 +115,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
   const handleSubmit = async () => {
     setSubmitError('');
+    setSubmitSuccess(false);
     setIsSubmitting(true);
 
     const priceFrom = Number.parseFloat(formData.price.replace(',', '.'));
@@ -183,7 +185,6 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
         price_unit: 'EUR',
         category_id: category.id,
         provider_profile_id: providerProfile.id,
-        status: 'approved',
       })
       .select('id')
       .single();
@@ -301,8 +302,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       }
     }
 
-    await onSubmit();
-    onClose();
+    setSubmitSuccess(true);
     setIsSubmitting(false);
   };
 
@@ -324,6 +324,12 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   const prevStep = () => {
     setStep(step - 1);
   };
+
+  useEffect(() => {
+    if (isOpen) {
+      setSubmitSuccess(false);
+    }
+  }, [isOpen]);
 
   useEffect(() => () => {
     uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
@@ -639,49 +645,74 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
               )}
 
               {step === 4 && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">Dodajte fotografije <span className="text-sm font-normal text-slate-500">(neobavezno)</span></h3>
-                    <p className="text-sm text-slate-500 mt-2">Maksimalno 3 fotografije. Prva fotografija bit će naslovna.</p>
-                  </div>
-                  <label
-                    data-testid="image-upload-label"
-                    className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-2xl p-8 cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                submitSuccess ? (
+                  <div
+                    data-testid="listing-submit-success"
+                    className="flex flex-col items-center justify-center py-12 text-center space-y-4"
                   >
-                    <input
-                      data-testid="image-upload-input"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
-                    />
-                    <Upload className="w-8 h-8 text-slate-400" />
-                    <span className="font-semibold text-slate-700">Odaberite fotografije</span>
-                  </label>
-
-                  {uploadPreviews.length > 0 && (
-                    <div data-testid="image-upload-preview" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {uploadPreviews.map((src, i) => (
-                        <div key={src} className="border border-slate-200 rounded-xl p-3 space-y-2">
-                          <img src={src} alt={`Preview ${i + 1}`} className="w-full h-28 object-cover rounded-lg" />
-                          <button
-                            type="button"
-                            data-testid={`remove-image-${i}`}
-                            onClick={() => removeImage(i)}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
-                          >
-                            Ukloni
-                          </button>
-                        </div>
-                      ))}
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
-                  )}
-                </div>
+                    <h3 className="text-xl font-bold text-slate-900">Oglas je poslan na pregled!</h3>
+                    <p className="text-slate-500 text-sm max-w-xs">
+                      Vaš oglas je uspješno kreiran i čeka odobrenje administratora.
+                      Bit ćete obaviješteni kada bude objavljen.
+                    </p>
+                    <button
+                      type="button"
+                      data-testid="listing-success-close"
+                      onClick={() => { onSubmit(); onClose(); }}
+                      className="px-8 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+                    >
+                      Zatvori
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-xl font-bold text-slate-900">Dodajte fotografije <span className="text-sm font-normal text-slate-500">(neobavezno)</span></h3>
+                      <p className="text-sm text-slate-500 mt-2">Maksimalno 3 fotografije. Prva fotografija bit će naslovna.</p>
+                    </div>
+                    <label
+                      data-testid="image-upload-label"
+                      className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-slate-300 rounded-2xl p-8 cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <input
+                        data-testid="image-upload-input"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <Upload className="w-8 h-8 text-slate-400" />
+                      <span className="font-semibold text-slate-700">Odaberite fotografije</span>
+                    </label>
+
+                    {uploadPreviews.length > 0 && (
+                      <div data-testid="image-upload-preview" className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {uploadPreviews.map((src, i) => (
+                          <div key={src} className="border border-slate-200 rounded-xl p-3 space-y-2">
+                            <img src={src} alt={`Preview ${i + 1}`} className="w-full h-28 object-cover rounded-lg" />
+                            <button
+                              type="button"
+                              data-testid={`remove-image-${i}`}
+                              onClick={() => removeImage(i)}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                            >
+                              Ukloni
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
               )}
             </div>
 
             {/* Footer */}
+            {!submitSuccess && (
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center sticky bottom-0 z-10">
               <button
                 type="button"
@@ -734,6 +765,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                 )}
               </div>
             </div>
+            )}
           </motion.div>
         </div>
       )}
