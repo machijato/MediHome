@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
-test('authenticated user can create listing, see it on homepage, and open detail page', async ({ page }) => {
+test('authenticated user can create listing and see pending success screen', async ({ page }) => {
   test.setTimeout(90000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
   const diagnosticsPrefix = `auth-flow-${Date.now()}`;
@@ -114,14 +114,8 @@ test('authenticated user can create listing, see it on homepage, and open detail
     }
 
     await expect(
-      modal,
-      'Timed out waiting for create-listing modal to close after submit.'
-    ).not.toBeVisible({ timeout: 20000 });
-
-    const createdListingTitle = page.getByText(uniqueTitle);
-    await expect(
-      createdListingTitle,
-      `Timed out waiting for new listing title "${uniqueTitle}" to appear in UI.`
+      page.locator('[data-testid="listing-submit-success"]'),
+      'Expected success screen after listing submit.'
     ).toBeVisible({ timeout: 20000 });
 
     const { data: listing, error: queryError } = await verificationSupabase
@@ -136,22 +130,10 @@ test('authenticated user can create listing, see it on homepage, and open detail
 
     expect(listing, `No provider_listings row found for title "${uniqueTitle}"`).toBeTruthy();
     expect(listing?.slug, 'Expected provider_listings.slug to be present.').toBeTruthy();
-    expect(listing?.status, 'Expected provider_listings.status to be approved.').toBe('approved');
+    expect(['approved', 'pending'], 'Expected provider_listings.status to be approved or pending.').toContain(listing?.status);
     expect(listing?.category_id, 'Expected provider_listings.category_id to be present.').toBeTruthy();
     expect(listing?.provider_profile_id, 'Expected provider_listings.provider_profile_id to be present.').toBeTruthy();
 
-    await expect(page).toHaveURL(/\/$/);
-
-    const listingCardLink = page.locator('[data-testid="listing-card"]').filter({ hasText: uniqueTitle }).first();
-    await expect(listingCardLink, `Expected listing card for "${uniqueTitle}" to be visible.`).toBeVisible({ timeout: 20000 });
-    await listingCardLink.click();
-
-    await expect(page).toHaveURL(/\/oglas\//);
-    await expect(page.locator('[data-testid="listing-detail-page"]')).toBeVisible({ timeout: 20000 });
-    await expect(page.locator('[data-testid="listing-detail-title"]')).toHaveText(uniqueTitle);
-    await expect(page.locator('[data-testid="listing-detail-description"]')).toHaveText(
-      'Automated authenticated wizard submit flow check.'
-    );
 
     const supabase = createClient(
       process.env.VITE_SUPABASE_URL!,

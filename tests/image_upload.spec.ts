@@ -55,21 +55,9 @@ test('authenticated user can upload image during listing creation', async ({ pag
 
   await page.locator('[data-testid="submit-listing"]').click();
 
-  await expect(modal).not.toBeVisible({ timeout: 20000 });
-  await expect(page.getByText(uniqueTitle)).toBeVisible({ timeout: 20000 });
-
-  await page.waitForTimeout(2000);
-
-  const listingCard = page.locator('[data-testid="listing-card"]')
-    .filter({ hasText: uniqueTitle })
-    .first();
-  await expect(listingCard).toBeVisible({ timeout: 10000 });
-
-  const cardImage = listingCard.locator('[data-testid="listing-card-image"]');
-  await expect(cardImage).toBeVisible({ timeout: 5000 });
-  const imageSrc = await cardImage.getAttribute('src');
-  expect(imageSrc).not.toMatch(/picsum\.photos/);
-  expect(imageSrc).toBeTruthy();
+  await expect(
+    page.locator('[data-testid="listing-submit-success"]')
+  ).toBeVisible({ timeout: 20000 });
 
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL!,
@@ -136,8 +124,9 @@ test('user can skip image upload', async ({ page }) => {
   await expect(page.locator('[data-testid="skip-image-upload"]')).toBeVisible({ timeout: 5000 });
   await page.locator('[data-testid="skip-image-upload"]').click();
 
-  await expect(modal).not.toBeVisible({ timeout: 20000 });
-  await expect(page.getByText(uniqueTitle)).toBeVisible({ timeout: 20000 });
+  await expect(
+    page.locator('[data-testid="listing-submit-success"]')
+  ).toBeVisible({ timeout: 20000 });
 
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL!,

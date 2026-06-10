@@ -189,15 +189,15 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
                   <div key={listing.id} data-testid="my-listing-item" className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${listing.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                          {listing.status === 'approved' ? 'Aktivno' : 'Neaktivno'}
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${listing.status === 'approved' ? 'bg-green-100 text-green-700' : listing.status === 'pending' ? 'bg-amber-100 text-amber-700' : listing.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
+                          {listing.status === 'approved' ? 'Aktivno' : listing.status === 'pending' ? 'Na pregledu' : listing.status === 'rejected' ? 'Odbijeno' : 'Neaktivno'}
                         </span>
                       </div>
                       <p className="font-medium text-slate-900 truncate">{listing.title}</p>
                       <p className="text-sm text-slate-500">{listing.city} · {listing.price_from} {listing.price_unit}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {listing.slug && (
+                      {listing.slug && listing.status === 'approved' && (
                         <Link to={`/oglas/${listing.slug}`} data-testid="my-listing-view-link" className="text-sm text-primary hover:underline">
                           Pregledaj
                         </Link>
