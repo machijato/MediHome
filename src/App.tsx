@@ -19,6 +19,8 @@ import { ResetPassword } from './pages/ResetPassword';
 import { ProviderProfilePage } from './ProviderProfilePage';
 import { MyProfilePage } from './pages/MyProfilePage';
 import { AdminPage } from './pages/AdminPage';
+import { ArticlesPage } from './pages/ArticlesPage';
+import { ArticleDetailPage } from './pages/ArticleDetailPage';
 import { useAdmin } from './hooks/useAdmin';
 
 type HomePageProps = {
@@ -61,6 +63,7 @@ function Footer() {
           <div>
             <h4 className="font-bold text-slate-900 mb-6">Informacije</h4>
             <ul className="space-y-4 text-sm text-slate-500">
+              <li><Link to="/clanci" data-testid="footer-articles-link" className="text-slate-500 hover:text-primary transition-colors text-sm">Članci i savjeti</Link></li>
               <li><Link to="/uvjeti-koristenja" data-testid="footer-terms-link" className="hover:text-primary transition-colors">Opći uvjeti korištenja</Link></li>
               <li><Link to="/politika-privatnosti" data-testid="footer-privacy-link" className="hover:text-primary transition-colors">Politika privatnosti</Link></li>
               <li><Link to="/odricanje-odgovornosti" data-testid="footer-disclaimer-link" className="hover:text-primary transition-colors">Odricanje od odgovornosti</Link></li>
@@ -895,6 +898,8 @@ export default function App() {
             }
           />
           <Route path="/oglas/:slug" element={<ListingDetailPage />} />
+          <Route path="/clanci" element={<ArticlesPage />} />
+          <Route path="/clanak/:slug" element={<ArticleDetailPage />} />
           <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
           <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
           <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />

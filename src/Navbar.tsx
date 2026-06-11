@@ -25,6 +25,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
           </div>
 
           <div className="flex items-center gap-4">
+            <Link
+              to="/clanci"
+              data-testid="nav-articles-link"
+              className="hidden lg:block text-sm font-medium text-slate-600 hover:text-primary transition-colors"
+            >
+              Članci
+            </Link>
             <button
               onClick={onPostAdClick}
               data-testid="open-create-listing"
