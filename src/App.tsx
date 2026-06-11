@@ -20,14 +20,80 @@ import { MyProfilePage } from './pages/MyProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { useAdmin } from './hooks/useAdmin';
 
-function HomePage({ user, onLogoutClick, isAdmin }: { user: any; onLogoutClick: () => void; isAdmin: boolean }) {
+type HomePageProps = {
+  user: any;
+  onLogoutClick: () => void;
+  isAdmin: boolean;
+  isModalOpen: boolean;
+  setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isAuthOpen: boolean;
+  setIsAuthOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  listingRefreshKey: number;
+};
+
+function Footer() {
+  return (
+    <footer className="bg-white border-t border-slate-200 py-12">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+          <div className="col-span-1 md:col-span-1">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">M</div>
+              <span className="text-xl font-bold text-slate-900">MediHome</span>
+            </div>
+            <p className="text-slate-500 text-sm leading-relaxed">
+              Vaš partner u pronalaženju najbolje kućne njege i medicinske opreme. Povezujemo stručnjake s onima
+              kojima je pomoć najpotrebnija.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-slate-900 mb-6">Usluge</h4>
+            <ul className="space-y-4 text-sm text-slate-500">
+              <li><Link to="/?cat=fizioterapeut" data-testid="footer-category-fizioterapeut" className="hover:text-primary transition-colors text-left">Fizikalna terapija</Link></li>
+              <li><Link to="/?cat=kucna-njega" data-testid="footer-category-kucna-njega" className="hover:text-primary transition-colors text-left">Medicinska njega</Link></li>
+              <li><Link to="/?cat=najam-opreme" data-testid="footer-category-najam-opreme" className="hover:text-primary transition-colors text-left">Najam opreme</Link></li>
+              <li><Link to="/?cat=ljekarne-i-ducani" data-testid="footer-category-ljekarne-i-ducani" className="hover:text-primary transition-colors text-left">Ljekarne i dućani</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-slate-900 mb-6">Informacije</h4>
+            <ul className="space-y-4 text-sm text-slate-500">
+              <li><Link to="/uvjeti-koristenja" data-testid="footer-terms-link" className="hover:text-primary transition-colors">Opći uvjeti korištenja</Link></li>
+              <li><Link to="/politika-privatnosti" data-testid="footer-privacy-link" className="hover:text-primary transition-colors">Politika privatnosti</Link></li>
+              <li><Link to="/odricanje-odgovornosti" data-testid="footer-disclaimer-link" className="hover:text-primary transition-colors">Odricanje od odgovornosti</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-bold text-slate-900 mb-6">Kontakt</h4>
+            <ul className="space-y-4 text-sm text-slate-500">
+              <li>info@medihome.hr</li>
+              <li>+385 1 234 5678</li>
+              <li>Zagreb, Hrvatska</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="pt-8 border-t border-slate-100 flex flex-col md:row justify-between items-center gap-4">
+          <p className="text-slate-400 text-xs">© 2024 MediHome. Sva prava pridržana.</p>
+          <div className="flex gap-6">
+            <a href="#" data-testid="footer-activity-link" className="text-slate-400 hover:text-primary transition-colors"><Activity className="w-5 h-5" /></a>
+            <a href="#" data-testid="footer-heart-pulse-link" className="text-slate-400 hover:text-primary transition-colors"><HeartPulse className="w-5 h-5" /></a>
+            <a href="#" data-testid="footer-package-link" className="text-slate-400 hover:text-primary transition-colors"><Package className="w-5 h-5" /></a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('cat') ?? 'all';
   const selectedCounty = searchParams.get('county') ?? 'all';
   const searchQuery = searchParams.get('q') ?? '';
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
   const [totalCount, setTotalCount] = useState(0);
   const pageSize = 12;
@@ -123,11 +189,7 @@ function HomePage({ user, onLogoutClick, isAdmin }: { user: any; onLogoutClick: 
 
   useEffect(() => {
     fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage);
-  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage]);
-
-  const handleCreateListing = async () => {
-    await fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage);
-  };
+  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage, listingRefreshKey]);
 
   const handleCategoryChange = (value: string) => {
     setSearchParams((prev) => {
@@ -158,34 +220,8 @@ function HomePage({ user, onLogoutClick, isAdmin }: { user: any; onLogoutClick: 
   };
 
 
-  useEffect(() => {
-    const hash = window.location.hash;
-
-    if (!hash) {
-      return;
-    }
-
-    const hashParams = new URLSearchParams(hash.slice(1));
-    const hashType = hashParams.get('type');
-
-    if (hashType === 'recovery') {
-      setIsRecoveryFlow(true);
-      setIsAuthOpen(true);
-      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
-    }
-  }, []);
-
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar
-        onPostAdClick={() => setIsModalOpen(true)}
-        onLoginClick={() => setIsAuthOpen(true)}
-        onLogoutClick={onLogoutClick}
-        user={user}
-        isAdmin={isAdmin}
-      />
-
-      <main className="flex-1">
+    <main>
         <section className="relative py-20 overflow-hidden bg-white">
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
@@ -396,7 +432,7 @@ function HomePage({ user, onLogoutClick, isAdmin }: { user: any; onLogoutClick: 
                       <PlusCircle className="w-5 h-5" />
                       Objavi oglas
                     </button>
-                    <button className="px-8 py-4 bg-white/10 text-white rounded-2xl font-bold text-lg hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2">
+                    <button data-testid="learn-more-cta" className="px-8 py-4 bg-white/10 text-white rounded-2xl font-bold text-lg hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2">
                       Saznaj više
                       <ArrowRight className="w-5 h-5" />
                     </button>
@@ -414,74 +450,10 @@ function HomePage({ user, onLogoutClick, isAdmin }: { user: any; onLogoutClick: 
         </section>
 
         <ArticleSection />
-      </main>
-
-      <CreateListingModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCreateListing} />
-      <AuthModal
-        open={isAuthOpen}
-        isRecovery={isRecoveryFlow}
-        onClose={() => {
-          setIsAuthOpen(false);
-          setIsRecoveryFlow(false);
-        }}
-      />
-
-      <footer className="bg-white border-t border-slate-200 py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-            <div className="col-span-1 md:col-span-1">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">M</div>
-                <span className="text-xl font-bold text-slate-900">MediHome</span>
-              </div>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Vaš partner u pronalaženju najbolje kućne njege i medicinske opreme. Povezujemo stručnjake s onima
-                kojima je pomoć najpotrebnija.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-slate-900 mb-6">Usluge</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><button onClick={() => handleCategoryChange('fizioterapeut')} className="hover:text-primary transition-colors text-left">Fizikalna terapija</button></li>
-                <li><button onClick={() => handleCategoryChange('kucna-njega')} className="hover:text-primary transition-colors text-left">Medicinska njega</button></li>
-                <li><button onClick={() => handleCategoryChange('najam-opreme')} className="hover:text-primary transition-colors text-left">Najam opreme</button></li>
-                <li><button onClick={() => handleCategoryChange('ljekarne-i-ducani')} className="hover:text-primary transition-colors text-left">Ljekarne i dućani</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-slate-900 mb-6">Informacije</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li><Link to="/uvjeti-koristenja" className="hover:text-primary transition-colors">Opći uvjeti korištenja</Link></li>
-                <li><Link to="/politika-privatnosti" className="hover:text-primary transition-colors">Politika privatnosti</Link></li>
-                <li><Link to="/odricanje-odgovornosti" className="hover:text-primary transition-colors">Odricanje od odgovornosti</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-bold text-slate-900 mb-6">Kontakt</h4>
-              <ul className="space-y-4 text-sm text-slate-500">
-                <li>info@medihome.hr</li>
-                <li>+385 1 234 5678</li>
-                <li>Zagreb, Hrvatska</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-slate-100 flex flex-col md:row justify-between items-center gap-4">
-            <p className="text-slate-400 text-xs">© 2024 MediHome. Sva prava pridržana.</p>
-            <div className="flex gap-6">
-              <a href="#" className="text-slate-400 hover:text-primary transition-colors"><Activity className="w-5 h-5" /></a>
-              <a href="#" className="text-slate-400 hover:text-primary transition-colors"><HeartPulse className="w-5 h-5" /></a>
-              <a href="#" className="text-slate-400 hover:text-primary transition-colors"><Package className="w-5 h-5" /></a>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
+    </main>
   );
 }
+
 
 function ListingDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -845,6 +817,10 @@ function ListingDetailPage() {
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
+  const [globalModalOpen, setGlobalModalOpen] = useState(false);
+  const [globalAuthOpen, setGlobalAuthOpen] = useState(false);
+  const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
+  const [listingRefreshKey, setListingRefreshKey] = useState(0);
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
 
   useEffect(() => {
@@ -861,35 +837,100 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const hash = window.location.hash;
+
+    if (!hash) {
+      return;
+    }
+
+    const hashParams = new URLSearchParams(hash.slice(1));
+    const hashType = hashParams.get('type');
+
+    if (hashType === 'recovery') {
+      setIsRecoveryFlow(true);
+      setGlobalAuthOpen(true);
+      window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
+    }
+  }, []);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
+  const handleCreateListing = () => {
+    setListingRefreshKey((currentKey) => currentKey + 1);
+  };
+
   return (
-    <Routes>
-      <Route path="/" element={<HomePage user={user} onLogoutClick={handleLogout} isAdmin={isAdmin} />} />
-      <Route path="/oglas/:slug" element={<ListingDetailPage />} />
-      <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
-      <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
-      <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
-      <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
-      <Route
-        path="/admin"
-        element={
-          adminLoading ? (
-            <div className="flex items-center justify-center min-h-screen">
-              <p className="text-slate-500">Učitavanje...</p>
-            </div>
-          ) : isAdmin ? (
-            <AdminPage user={user} />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
+    <div className="min-h-screen flex flex-col">
+      <Navbar
+        onPostAdClick={() => {
+          setGlobalModalOpen(true);
+        }}
+        onLoginClick={() => setGlobalAuthOpen(true)}
+        onLogoutClick={handleLogout}
+        user={user}
+        isAdmin={isAdmin}
       />
-    </Routes>
+
+      <div className="flex-1">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                user={user}
+                onLogoutClick={handleLogout}
+                isAdmin={isAdmin}
+                isModalOpen={globalModalOpen}
+                setIsModalOpen={setGlobalModalOpen}
+                isAuthOpen={globalAuthOpen}
+                setIsAuthOpen={setGlobalAuthOpen}
+                listingRefreshKey={listingRefreshKey}
+              />
+            }
+          />
+          <Route path="/oglas/:slug" element={<ListingDetailPage />} />
+          <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
+          <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
+          <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
+          <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
+          <Route
+            path="/admin"
+            element={
+              adminLoading ? (
+                <div className="flex items-center justify-center min-h-[60vh]">
+                  <p className="text-slate-500">Učitavanje...</p>
+                </div>
+              ) : isAdmin ? (
+                <AdminPage user={user} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+        </Routes>
+      </div>
+
+      <Footer />
+
+      <CreateListingModal
+        isOpen={globalModalOpen}
+        onClose={() => setGlobalModalOpen(false)}
+        onSubmit={handleCreateListing}
+      />
+      <AuthModal
+        open={globalAuthOpen}
+        isRecovery={isRecoveryFlow}
+        onClose={() => {
+          setGlobalAuthOpen(false);
+          setIsRecoveryFlow(false);
+        }}
+      />
+    </div>
   );
 }
