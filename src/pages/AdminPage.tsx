@@ -481,7 +481,20 @@ function AdminArticles() {
         is_active: true,
       }));
 
-      await supabase.from('article_blocks').insert(blockRows);
+      const { error: blocksError } = await supabase
+        .from('article_blocks')
+        .insert(blockRows);
+
+      if (blocksError) {
+        await supabase
+          .from('content_items')
+          .delete()
+          .eq('id', insertedArticle.id);
+
+        setSaving(false);
+        alert('Greška pri spremanju sadržaja članka. Pokušajte ponovno.');
+        return;
+      }
     }
 
     setSaving(false);
