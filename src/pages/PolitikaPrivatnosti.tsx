@@ -1,9 +1,6 @@
-import { Navbar } from '../Navbar';
-
 export const PolitikaPrivatnosti = () => {
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar onPostAdClick={() => {}} />
       <main className="max-w-3xl mx-auto px-4 py-12 space-y-8">
         <h1 className="text-4xl font-extrabold text-slate-900">Politika privatnosti</h1>
         <section className="space-y-3"><h2 className="text-2xl font-bold text-slate-900">Uvod</h2><p className="text-slate-600 leading-relaxed">Ova Politika privatnosti objašnjava koje podatke prikupljamo, zašto ih obrađujemo i kako štitimo privatnost korisnika MediHome platforme.</p></section>
