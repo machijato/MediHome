@@ -8,6 +8,15 @@ interface AdminPageProps {
 
 type AdminTab = 'dashboard' | 'listings' | 'users' | 'articles';
 type ListingFilter = 'all' | 'pending' | 'approved' | 'draft';
+type BlockType = 'heading' | 'text' | 'image';
+
+interface ArticleBlock {
+  id: string;
+  type: BlockType;
+  content: string;
+  alt: string;
+  caption: string;
+}
 
 const articleFormInitialState = {
   title: '',
@@ -369,6 +378,8 @@ function AdminArticles() {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState(articleFormInitialState);
   const [saving, setSaving] = useState(false);
+  const [blocks, setBlocks] = useState<ArticleBlock[]>([]);
+  const [coverImageUrl, setCoverImageUrl] = useState('');
 
   const fetchArticles = async () => {
     const { data } = await supabase
@@ -392,34 +403,93 @@ function AdminArticles() {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '');
 
+  const addBlock = (type: BlockType) => {
+    setBlocks((prev) => [
+      ...prev,
+      {
+        id: Math.random().toString(36).slice(2),
+        type,
+        content: '',
+        alt: '',
+        caption: '',
+      },
+    ]);
+  };
+
+  const updateBlock = (id: string, field: keyof ArticleBlock, value: string) => {
+    setBlocks((prev) => prev.map((block) => (block.id === id ? { ...block, [field]: value } : block)));
+  };
+
+  const removeBlock = (id: string) => {
+    setBlocks((prev) => prev.filter((block) => block.id !== id));
+  };
+
+  const moveBlock = (id: string, direction: 'up' | 'down') => {
+    setBlocks((prev) => {
+      const index = prev.findIndex((block) => block.id === id);
+      if (index === -1) return prev;
+      if (direction === 'up' && index === 0) return prev;
+      if (direction === 'down' && index === prev.length - 1) return prev;
+
+      const newBlocks = [...prev];
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
+      [newBlocks[index], newBlocks[swapIndex]] = [newBlocks[swapIndex], newBlocks[index]];
+      return newBlocks;
+    });
+  };
+
   const handlePublish = async () => {
     if (!formData.title.trim()) return;
     setSaving(true);
 
     const slug = `${generateSlug(formData.title)}-${Date.now()}`;
 
-    const { error } = await supabase.from('content_items').insert({
-      type: 'article',
-      category_key: formData.category_key,
-      title: formData.title,
-      slug,
-      excerpt: formData.excerpt,
-      description: formData.description,
-      author_name: formData.author_name,
-      status: 'published',
-      is_active: true,
-      published_at: new Date().toISOString(),
-      seo_title: formData.seo_title || formData.title,
-      seo_description: formData.seo_description || formData.excerpt,
-    });
+    const { data: insertedArticle, error } = await supabase
+      .from('content_items')
+      .insert({
+        type: 'article',
+        category_key: formData.category_key,
+        title: formData.title,
+        slug,
+        excerpt: formData.excerpt,
+        description: formData.description,
+        cover_image_url: coverImageUrl || null,
+        author_name: formData.author_name,
+        status: 'published',
+        is_active: true,
+        published_at: new Date().toISOString(),
+        seo_title: formData.seo_title || formData.title,
+        seo_description: formData.seo_description || formData.excerpt,
+      })
+      .select('id')
+      .single();
+
+    if (error || !insertedArticle) {
+      setSaving(false);
+      return;
+    }
+
+    if (blocks.length > 0) {
+      const blockRows = blocks.map((block, index) => ({
+        content_item_id: insertedArticle.id,
+        block_type: block.type,
+        text_content: block.type !== 'image' ? block.content : null,
+        image_url: block.type === 'image' ? block.content : null,
+        image_alt: block.alt || null,
+        caption: block.caption || null,
+        display_order: index,
+        is_active: true,
+      }));
+
+      await supabase.from('article_blocks').insert(blockRows);
+    }
 
     setSaving(false);
-
-    if (!error) {
-      setShowForm(false);
-      setFormData(articleFormInitialState);
-      fetchArticles();
-    }
+    setShowForm(false);
+    setBlocks([]);
+    setCoverImageUrl('');
+    setFormData(articleFormInitialState);
+    fetchArticles();
   };
 
   const handleToggleActive = async (id: string, current: boolean) => {
@@ -456,27 +526,174 @@ function AdminArticles() {
             { key: 'seo_title', label: 'SEO naslov', type: 'text', testid: 'article-input-seo-title' },
             { key: 'seo_description', label: 'SEO opis', type: 'text', testid: 'article-input-seo-desc' },
           ].map((field) => (
-            <div key={field.key}>
-              <label className="block text-sm font-medium text-slate-700 mb-1">{field.label}</label>
-              <input
-                data-testid={field.testid}
-                type={field.type}
-                value={formData[field.key as keyof typeof formData]}
-                onChange={(event) => setFormData((prev) => ({ ...prev, [field.key]: event.target.value }))}
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
+            <React.Fragment key={field.key}>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">{field.label}</label>
+                <input
+                  data-testid={field.testid}
+                  type={field.type}
+                  value={formData[field.key as keyof typeof formData]}
+                  onChange={(event) => setFormData((prev) => ({ ...prev, [field.key]: event.target.value }))}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+
+              {field.key === 'excerpt' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Naslovna slika (URL)</label>
+                    <input
+                      data-testid="article-input-cover-image"
+                      type="url"
+                      value={coverImageUrl}
+                      onChange={(event) => setCoverImageUrl(event.target.value)}
+                      placeholder="https://..."
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-3">Sadržaj članka (blokovi)</label>
+
+                    <div className="space-y-3 mb-4">
+                      {blocks.map((block, index) => (
+                        <div
+                          key={block.id}
+                          data-testid="article-block-item"
+                          className="bg-slate-50 rounded-xl border border-slate-200 p-4"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                              {block.type === 'heading' ? 'Naslov' : block.type === 'text' ? 'Tekst' : 'Slika'}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                data-testid="move-block-up-button"
+                                onClick={() => moveBlock(block.id, 'up')}
+                                disabled={index === 0}
+                                className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                                title="Pomakni gore"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                type="button"
+                                data-testid="move-block-down-button"
+                                onClick={() => moveBlock(block.id, 'down')}
+                                disabled={index === blocks.length - 1}
+                                className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30"
+                                title="Pomakni dolje"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                type="button"
+                                data-testid="remove-block-button"
+                                onClick={() => removeBlock(block.id)}
+                                className="p-1 text-red-400 hover:text-red-600 ml-1"
+                                title="Ukloni blok"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+
+                          {block.type === 'heading' && (
+                            <input
+                              data-testid="article-block-heading-input"
+                              type="text"
+                              value={block.content}
+                              onChange={(event) => updateBlock(block.id, 'content', event.target.value)}
+                              placeholder="Unesite naslov..."
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/30"
+                            />
+                          )}
+
+                          {block.type === 'text' && (
+                            <textarea
+                              data-testid="article-block-text-input"
+                              value={block.content}
+                              onChange={(event) => updateBlock(block.id, 'content', event.target.value)}
+                              placeholder="Unesite tekst..."
+                              rows={4}
+                              className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                            />
+                          )}
+
+                          {block.type === 'image' && (
+                            <div className="space-y-2">
+                              <input
+                                data-testid="article-block-image-url-input"
+                                type="url"
+                                value={block.content}
+                                onChange={(event) => updateBlock(block.id, 'content', event.target.value)}
+                                placeholder="URL slike (https://...)"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30"
+                              />
+                              {block.content && (
+                                <img
+                                  src={block.content}
+                                  alt="Preview"
+                                  className="w-full max-h-48 object-cover rounded-lg border border-slate-200"
+                                  onError={(event) => {
+                                    (event.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              )}
+                              <input
+                                data-testid="article-block-image-alt-input"
+                                type="text"
+                                value={block.alt}
+                                onChange={(event) => updateBlock(block.id, 'alt', event.target.value)}
+                                placeholder="Opis slike (alt tekst)"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm"
+                              />
+                              <input
+                                data-testid="article-block-image-caption-input"
+                                type="text"
+                                value={block.caption}
+                                onChange={(event) => updateBlock(block.id, 'caption', event.target.value)}
+                                placeholder="Potpis ispod slike (opcionalno)"
+                                className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        data-testid="add-block-heading"
+                        onClick={() => addBlock('heading')}
+                        className="px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                      >
+                        + Naslov
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="add-block-text"
+                        onClick={() => addBlock('text')}
+                        className="px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                      >
+                        + Tekst
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="add-block-image"
+                        onClick={() => addBlock('image')}
+                        className="px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                      >
+                        + Slika
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </React.Fragment>
           ))}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Sadržaj</label>
-            <textarea
-              data-testid="article-input-description"
-              value={formData.description}
-              onChange={(event) => setFormData((prev) => ({ ...prev, description: event.target.value }))}
-              rows={6}
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-            />
-          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Kategorija</label>
             <select
