@@ -8,6 +8,7 @@ import { ListingCard } from './ListingCard';
 import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
 import { AuthModal } from './components/AuthModal';
+import { ScrollToTop } from './components/ScrollToTop';
 import { AdSlot } from './components/AdSlot';
 import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
 import { supabase } from './lib/supabase';
@@ -876,6 +877,7 @@ export default function App() {
       />
 
       <div className="flex-1">
+        <ScrollToTop />
         <Routes>
           <Route
             path="/"
