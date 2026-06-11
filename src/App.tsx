@@ -5,7 +5,6 @@ import { Filter, SlidersHorizontal, ChevronDown, Activity, HeartPulse, Package, 
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
-import { ArticleSection } from './ArticleSection';
 import { CreateListingModal } from './CreateListingModal';
 import { AuthModal } from './components/AuthModal';
 import { ScrollToTop } from './components/ScrollToTop';
@@ -100,6 +99,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   const searchQuery = searchParams.get('q') ?? '';
   const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
   const [totalCount, setTotalCount] = useState(0);
+  const [homeArticles, setHomeArticles] = useState<any[]>([]);
   const pageSize = 12;
   const currentPage = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10) || 1);
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -194,6 +194,34 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   useEffect(() => {
     fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage);
   }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage, listingRefreshKey]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchHomeArticles = async () => {
+      const { data: articlesData, error } = await supabase
+        .from('content_items')
+        .select('id, title, slug, excerpt, cover_image_url, category_key, published_at, author_name')
+        .eq('status', 'published')
+        .eq('is_active', true)
+        .order('published_at', { ascending: false })
+        .limit(3);
+
+      if (error) {
+        console.error('Greška pri dohvaćanju članaka iz Supabasea:', error);
+      }
+
+      if (isMounted) {
+        setHomeArticles(articlesData ?? []);
+      }
+    };
+
+    fetchHomeArticles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleCategoryChange = (value: string) => {
     setSearchParams((prev) => {
@@ -453,7 +481,63 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
           </div>
         </section>
 
-        <ArticleSection />
+        {homeArticles.length > 0 && (
+          <section className="py-20 bg-white">
+            <div className="max-w-7xl mx-auto px-4">
+              <div className="flex justify-between items-end mb-12">
+                <div>
+                  <h2 className="text-3xl font-bold text-slate-900 mb-4">Novosti i Savjeti</h2>
+                  <p className="text-slate-500 max-w-xl">
+                    Pratite najnovije promjene u zakonima, savjete stručnjaka i novosti iz svijeta medicinske njege.
+                  </p>
+                </div>
+                <Link
+                  to="/clanci"
+                  data-testid="view-all-articles-link"
+                  className="hidden md:flex items-center gap-2 text-primary font-bold hover:underline"
+                >
+                  Vidi sve članke <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {homeArticles.map((article) => (
+                  <Link
+                    key={article.id}
+                    to={`/clanak/${article.slug}`}
+                    data-testid="home-article-card"
+                    className="group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow"
+                  >
+                    {article.cover_image_url ? (
+                      <img
+                        src={article.cover_image_url}
+                        alt={article.title}
+                        className="w-full h-48 object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center">
+                        <span className="text-4xl">📋</span>
+                      </div>
+                    )}
+                    <div className="p-5">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        {article.category_key}
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-lg mt-2 mb-1 group-hover:text-primary transition-colors line-clamp-2">
+                        {article.title}
+                      </h3>
+                      {article.excerpt && (
+                        <p className="text-sm text-slate-500 line-clamp-2">{article.excerpt}</p>
+                      )}
+                      <p className="text-sm font-semibold text-primary mt-3">Pročitaj više →</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
     </main>
   );
 }

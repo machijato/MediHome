@@ -20,14 +20,15 @@ test('article detail page shows not found for invalid slug', async ({ page }) =>
   await expect(page.locator('[data-testid="article-not-found"]')).toBeVisible({ timeout: 10000 });
 });
 
-test('articles link exists in navbar', async ({ page }) => {
+test('articles link is available in footer and not navbar', async ({ page }) => {
   test.setTimeout(15000);
 
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
 
-  await expect(page.locator('[data-testid="nav-articles-link"]')).toBeVisible({ timeout: 10000 });
-  await page.locator('[data-testid="nav-articles-link"]').click();
+  await expect(page.locator('[data-testid="nav-articles-link"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="footer-articles-link"]')).toBeVisible({ timeout: 10000 });
+  await page.locator('[data-testid="footer-articles-link"]').click();
   await expect(page).toHaveURL('/clanci');
   await expect(page.locator('[data-testid="articles-page"]')).toBeVisible({ timeout: 10000 });
 });
