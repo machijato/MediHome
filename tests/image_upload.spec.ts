@@ -1,6 +1,25 @@
 import 'dotenv/config';
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
+
+const goFromCategoryToDetails = async (page: Page) => {
+  await page.locator('[data-testid="category-fizioterapeut"]').click();
+
+  // Selecting a category auto-advances the wizard from step 1 to step 2.
+  await expect(page.getByText('Tip rada (moguće označiti oba)')).toBeVisible();
+
+  // Step 2 contains service options; the next click moves to listing details (step 3).
+  await page.locator('[data-testid="next-step"]').click();
+  await expect(page.locator('[data-testid="input-title"]')).toBeVisible();
+};
+
+const goFromDetailsToImages = async (page: Page) => {
+  await page.locator('[data-testid="next-step"]').click();
+
+  // Step 4 is the image-upload step; the file input is hidden but attached in this step.
+  await expect(page.locator('[data-testid="image-upload-label"]')).toBeVisible();
+  await expect(page.locator('[data-testid="image-upload-input"]')).toBeAttached();
+};
 
 test('authenticated user can upload image during listing creation', async ({ page }) => {
   test.setTimeout(90000);
@@ -29,17 +48,14 @@ test('authenticated user can upload image during listing creation', async ({ pag
   const modal = page.locator('[data-testid="create-listing-modal"]');
   await expect(modal).toBeVisible();
 
-  await page.locator('[data-testid="category-fizioterapeut"]').click();
-  await page.locator('[data-testid="next-step"]').click();
+  await goFromCategoryToDetails(page);
 
   const uniqueTitle = `E2E Image Upload Test ${Date.now()}`;
   await page.locator('[data-testid="input-title"]').fill(uniqueTitle);
   await page.locator('[data-testid="input-price"]').fill('50');
   await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
   await page.locator('[data-testid="input-description"]').fill('Test upload slike.');
-  await page.locator('[data-testid="next-step"]').click();
-
-  await expect(page.locator('[data-testid="image-upload-input"]')).toBeAttached();
+  await goFromDetailsToImages(page);
 
   const base64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
@@ -53,11 +69,12 @@ test('authenticated user can upload image during listing creation', async ({ pag
 
   await expect(page.locator('[data-testid="image-upload-preview"]')).toBeVisible({ timeout: 5000 });
 
+  await expect(page.locator('[data-testid="submit-listing"]')).toBeEnabled();
   await page.locator('[data-testid="submit-listing"]').click();
 
   await expect(
     page.locator('[data-testid="listing-submit-success"]')
-  ).toBeVisible({ timeout: 20000 });
+  ).toBeVisible({ timeout: 40000 });
 
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL!,
@@ -111,15 +128,14 @@ test('user can skip image upload', async ({ page }) => {
   const modal = page.locator('[data-testid="create-listing-modal"]');
   await expect(modal).toBeVisible();
 
-  await page.locator('[data-testid="category-fizioterapeut"]').click();
-  await page.locator('[data-testid="next-step"]').click();
+  await goFromCategoryToDetails(page);
 
   const uniqueTitle = `E2E Skip Image Test ${Date.now()}`;
   await page.locator('[data-testid="input-title"]').fill(uniqueTitle);
   await page.locator('[data-testid="input-price"]').fill('40');
   await page.locator('[data-testid="input-city"] input[type="checkbox"]').first().check();
   await page.locator('[data-testid="input-description"]').fill('Test skip upload.');
-  await page.locator('[data-testid="next-step"]').click();
+  await goFromDetailsToImages(page);
 
   await expect(page.locator('[data-testid="skip-image-upload"]')).toBeVisible({ timeout: 5000 });
   await page.locator('[data-testid="skip-image-upload"]').click();

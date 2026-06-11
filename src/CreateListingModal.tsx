@@ -211,7 +211,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (filesToUpload = selectedFiles) => {
     setSubmitError('');
     setSubmitSuccess(false);
     setIsSubmitting(true);
@@ -357,7 +357,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
     let hasUploadError = false;
 
-    if (selectedFiles.length > 0 && listingIdForImages) {
+    if (filesToUpload.length > 0 && listingIdForImages) {
       setIsUploading(true);
       try {
         if (isEditMode && editListing?.id) {
@@ -367,8 +367,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             .eq('listing_id', editListing.id);
         }
 
-        for (let i = 0; i < selectedFiles.length; i += 1) {
-          const file = selectedFiles[i];
+        for (let i = 0; i < filesToUpload.length; i += 1) {
+          const file = filesToUpload[i];
           const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
           const storagePath = `${listingIdForImages}/${Date.now()}-${sanitizedName}`;
 
@@ -405,13 +405,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       }
     }
 
-    if (!hasUploadError) {
-      setSubmitSuccess(true);
-    } else {
-      setIsSubmitting(false);
-      return;
+    if (hasUploadError) {
+      setSubmitError('Greška pri uploadu slike. Oglas je spremljen bez fotografije.');
     }
 
+    setSubmitSuccess(true);
     setIsSubmitting(false);
   };
 
@@ -419,11 +417,11 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
     setSelectedFiles([]);
     setUploadPreviews([]);
-    await handleSubmit();
+    await handleSubmit([]);
   };
 
   const handleSubmitWithImages = async () => {
-    await handleSubmit();
+    await handleSubmit(selectedFiles);
   };
 
   const nextStep = () => {
