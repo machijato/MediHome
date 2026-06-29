@@ -20,7 +20,9 @@ import { MyProfilePage } from './pages/MyProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { ArticlesPage } from './pages/ArticlesPage';
 import { ArticleDetailPage } from './pages/ArticleDetailPage';
+import { CategoryPage } from './pages/CategoryPage';
 import { useAdmin } from './hooks/useAdmin';
+import { SEO } from './components/SEO';
 
 type HomePageProps = {
   user: any;
@@ -37,7 +39,7 @@ function Footer() {
   return (
     <footer className="bg-white border-t border-slate-200 py-12">
       <div className="max-w-7xl mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 mb-12">
           <div className="col-span-1 md:col-span-1">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">M</div>
@@ -66,6 +68,16 @@ function Footer() {
               <li><Link to="/uvjeti-koristenja" data-testid="footer-terms-link" className="hover:text-primary transition-colors">Opći uvjeti korištenja</Link></li>
               <li><Link to="/politika-privatnosti" data-testid="footer-privacy-link" className="hover:text-primary transition-colors">Politika privatnosti</Link></li>
               <li><Link to="/odricanje-odgovornosti" data-testid="footer-disclaimer-link" className="hover:text-primary transition-colors">Odricanje od odgovornosti</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3 text-sm">Kategorije</h4>
+            <ul className="space-y-2 text-sm">
+              <li><Link to="/kategorija/fizioterapeut" data-testid="footer-category-page-fizioterapeut" className="text-slate-500 hover:text-primary">Fizioterapeuti</Link></li>
+              <li><Link to="/kategorija/kucna-njega" data-testid="footer-category-page-kucna-njega" className="text-slate-500 hover:text-primary">Kućna njega</Link></li>
+              <li><Link to="/kategorija/najam-opreme" data-testid="footer-category-page-najam-opreme" className="text-slate-500 hover:text-primary">Najam opreme</Link></li>
+              <li><Link to="/kategorija/sanitetski-prijevoz" data-testid="footer-category-page-sanitetski-prijevoz" className="text-slate-500 hover:text-primary">Sanitetski prijevoz</Link></li>
             </ul>
           </div>
 
@@ -253,7 +265,13 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
 
 
   return (
-    <main>
+    <>
+      <SEO
+        title="Pronađite fizioterapeuta, njegu u kući i medicinsku opremu"
+        description="Imenik provjerenih pružatelja zdravstvenih usluga u Hrvatskoj: fizioterapija, kućna njega, najam medicinske opreme i sanitetski prijevoz."
+        canonicalPath="/"
+      />
+      <main>
         <section className="relative py-20 overflow-hidden bg-white">
           <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-secondary/5 rounded-full blur-3xl" />
@@ -538,7 +556,8 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
             </div>
           </section>
         )}
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -568,6 +587,7 @@ function ListingDetailPage() {
         .from('provider_listings')
         .select(`
           id,
+          slug,
           title,
           description,
           price_from,
@@ -724,7 +744,14 @@ function ListingDetailPage() {
       return (a?.display_order ?? Number.MAX_SAFE_INTEGER) - (b?.display_order ?? Number.MAX_SAFE_INTEGER);
     });
   return (
-    <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12 pb-20 lg:pb-0">
+    <>
+      <SEO
+        title={listing.title}
+        description={listing.description?.slice(0, 160) ?? `${listing.title} - ${listing.city}`}
+        canonicalPath={`/oglas/${listing.slug}`}
+        ogImage={listing.listing_images?.find((img: any) => img.is_primary)?.image_url}
+      />
+      <main data-testid="listing-detail-page" className="max-w-6xl mx-auto px-4 py-10 md:py-12 pb-20 lg:pb-0">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mb-6">
         <h1 data-testid="listing-detail-title" className="text-3xl md:text-4xl font-bold text-slate-900 mb-5">{listing.title}</h1>
         <div className="flex flex-wrap gap-3 text-sm">
@@ -899,7 +926,8 @@ function ListingDetailPage() {
           )}
         </div>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 
@@ -982,6 +1010,7 @@ export default function App() {
             }
           />
           <Route path="/oglas/:slug" element={<ListingDetailPage />} />
+          <Route path="/kategorija/:categorySlug" element={<CategoryPage />} />
           <Route path="/clanci" element={<ArticlesPage />} />
           <Route path="/clanak/:slug" element={<ArticleDetailPage />} />
           <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />

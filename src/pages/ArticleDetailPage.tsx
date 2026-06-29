@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { ChevronLeft } from 'lucide-react';
+import { SEO } from '../components/SEO';
 
 export function ArticleDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -61,6 +62,12 @@ export function ArticleDetailPage() {
 
   return (
     <article data-testid="article-detail-page" className="max-w-3xl mx-auto px-4 py-10">
+      <SEO
+        title={article.seo_title || article.title}
+        description={article.seo_description || article.excerpt || ''}
+        canonicalPath={`/clanak/${article.slug}`}
+        ogImage={article.cover_image_url}
+      />
       <Link
         to="/clanci"
         data-testid="article-back-link"

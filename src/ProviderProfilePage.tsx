@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { supabase } from './lib/supabase';
+import { SEO } from './components/SEO';
 
 type ProviderProfile = {
   id: string;
@@ -95,7 +96,13 @@ export function ProviderProfilePage() {
   }
 
   return (
-    <main data-testid="provider-profile-page" className="max-w-4xl mx-auto px-4 py-10">
+    <>
+      <SEO
+        title={profile.display_name || 'Profil pružatelja'}
+        description={`${profile.display_name} - ${profile.provider_type || ''} u ${profile.city || profile.county || 'Hrvatskoj'}`}
+        canonicalPath={`/profil/${profile.id}`}
+      />
+      <main data-testid="provider-profile-page" className="max-w-4xl mx-auto px-4 py-10">
       <section className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm mb-6">
         <div className="flex items-center gap-4 mb-4">
           <div data-testid="provider-profile-avatar" className="w-14 h-14 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center">
@@ -168,6 +175,7 @@ export function ProviderProfilePage() {
           <p data-testid="provider-profile-listings" className="text-slate-500">Ovaj pružatelj trenutno nema aktivnih oglasa.</p>
         )}
       </section>
-    </main>
+      </main>
+    </>
   );
 }
