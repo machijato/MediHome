@@ -10,7 +10,7 @@ test('homepage has correct title and meta description', async ({ page }) => {
   expect(title).toContain('MediHome');
   expect(title).not.toBe('My Google AI Studio App');
 
-  const description = await page.locator('meta[name="description"]').getAttribute('content');
+  const description = await page.locator('meta[name="description"]').first().getAttribute('content');
   expect(description).toBeTruthy();
 });
 
