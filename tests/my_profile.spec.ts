@@ -1,6 +1,20 @@
 import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 
+async function isSupabaseReachable(): Promise<boolean> {
+  const url = process.env.VITE_SUPABASE_URL;
+  if (!url) return false;
+  try {
+    const response = await fetch(`${url}/rest/v1/`, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(3000)
+    });
+    return response.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 async function login(page: any) {
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
@@ -19,6 +33,13 @@ async function login(page: any) {
 }
 
 test('authenticated user can view and edit their profile', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(60000);
 
   await page.goto('/');
@@ -54,6 +75,13 @@ test('unauthenticated user is redirected from /moj-profil', async ({ page }) => 
 });
 
 test('my profile link is visible in navbar when logged in', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(30000);
 
   await page.goto('/');
