@@ -1,6 +1,20 @@
 import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 
+async function isSupabaseReachable(): Promise<boolean> {
+  const url = process.env.VITE_SUPABASE_URL;
+  if (!url) return false;
+  try {
+    const response = await fetch(`${url}/rest/v1/`, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(3000)
+    });
+    return response.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 async function loginAsAdmin(page: any) {
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
@@ -19,12 +33,26 @@ async function loginAsAdmin(page: any) {
 }
 
 test('admin link is visible in navbar for admin user', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(30000);
   await loginAsAdmin(page);
   await expect(page.locator('[data-testid="nav-admin-link"]')).toBeVisible({ timeout: 10000 });
 });
 
 test('admin page loads with dashboard tab', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(30000);
   await loginAsAdmin(page);
   await page.locator('[data-testid="nav-admin-link"]').click();
@@ -35,6 +63,13 @@ test('admin page loads with dashboard tab', async ({ page }) => {
 });
 
 test('admin can switch to listings tab', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(30000);
   await loginAsAdmin(page);
   await page.locator('[data-testid="nav-admin-link"]').click();

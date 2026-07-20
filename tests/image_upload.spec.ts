@@ -2,6 +2,20 @@ import 'dotenv/config';
 import { test, expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
+async function isSupabaseReachable(): Promise<boolean> {
+  const url = process.env.VITE_SUPABASE_URL;
+  if (!url) return false;
+  try {
+    const response = await fetch(`${url}/rest/v1/`, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(3000)
+    });
+    return response.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 const goFromCategoryToDetails = async (page: Page) => {
   await page.locator('[data-testid="category-fizioterapeut"]').click();
 
@@ -22,6 +36,13 @@ const goFromDetailsToImages = async (page: Page) => {
 };
 
 test('authenticated user can upload image during listing creation', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(90000);
 
   await page.goto('/');
@@ -105,6 +126,13 @@ test('authenticated user can upload image during listing creation', async ({ pag
 });
 
 test('user can skip image upload', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(90000);
 
   await page.goto('/');

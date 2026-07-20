@@ -2,7 +2,28 @@ import 'dotenv/config';
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
+async function isSupabaseReachable(): Promise<boolean> {
+  const url = process.env.VITE_SUPABASE_URL;
+  if (!url) return false;
+  try {
+    const response = await fetch(`${url}/rest/v1/`, {
+      method: 'HEAD',
+      signal: AbortSignal.timeout(3000)
+    });
+    return response.status < 500;
+  } catch {
+    return false;
+  }
+}
+
 test('authenticated user can create listing and see pending success screen', async ({ page }) => {
+  const reachable = await isSupabaseReachable();
+  if (!reachable) {
+    console.log('Supabase not reachable in CI — skipping auth test');
+    test.skip();
+    return;
+  }
+
   test.setTimeout(90000);
   const uniqueTitle = `E2E Auth Oglas ${Date.now()}`;
   const diagnosticsPrefix = `auth-flow-${Date.now()}`;
