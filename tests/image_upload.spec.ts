@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { requireEnv } from './e2e-env';
 import { test, expect, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
@@ -53,10 +54,10 @@ test('authenticated user can upload image during listing creation', async ({ pag
     await page.locator('[data-testid="open-auth-modal"]').click();
     await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
     await page.locator('[data-testid="auth-email-input"]').fill(
-      process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com'
+      requireEnv('E2E_AUTH_EMAIL')
     );
     await page.locator('[data-testid="auth-password-input"]').fill(
-      process.env.E2E_AUTH_PASSWORD ?? 'Maki4321'
+      requireEnv('E2E_AUTH_PASSWORD')
     );
     await page.locator('[data-testid="auth-submit-button"]').click();
     await expect(authUserChip).toBeVisible({ timeout: 20000 });
@@ -104,8 +105,8 @@ test('authenticated user can upload image during listing creation', async ({ pag
 
   // Sign in as the test user to get authenticated session for cleanup
   await supabase.auth.signInWithPassword({
-    email: process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com',
-    password: process.env.E2E_AUTH_PASSWORD ?? 'Maki4321',
+    email: requireEnv('E2E_AUTH_EMAIL'),
+    password: requireEnv('E2E_AUTH_PASSWORD'),
   });
 
   // Cleanup by exact title
@@ -142,10 +143,10 @@ test('user can skip image upload', async ({ page }) => {
   if (!(await authUserChip.isVisible())) {
     await page.locator('[data-testid="open-auth-modal"]').click();
     await page.locator('[data-testid="auth-email-input"]').fill(
-      process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com'
+      requireEnv('E2E_AUTH_EMAIL')
     );
     await page.locator('[data-testid="auth-password-input"]').fill(
-      process.env.E2E_AUTH_PASSWORD ?? 'Maki4321'
+      requireEnv('E2E_AUTH_PASSWORD')
     );
     await page.locator('[data-testid="auth-submit-button"]').click();
     await expect(authUserChip).toBeVisible({ timeout: 20000 });
@@ -179,8 +180,8 @@ test('user can skip image upload', async ({ page }) => {
 
   // Sign in as the test user to get authenticated session for cleanup
   await supabase.auth.signInWithPassword({
-    email: process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com',
-    password: process.env.E2E_AUTH_PASSWORD ?? 'Maki4321',
+    email: requireEnv('E2E_AUTH_EMAIL'),
+    password: requireEnv('E2E_AUTH_PASSWORD'),
   });
 
   // Cleanup by exact title
