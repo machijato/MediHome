@@ -99,6 +99,17 @@ jobs:
           E2E_AUTH_EMAIL: ${{ secrets.E2E_AUTH_EMAIL }}
           E2E_AUTH_PASSWORD: ${{ secrets.E2E_AUTH_PASSWORD }}
 
+      - name: Publish failure context as annotations
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob
+          for f in glob.glob('test-results/**/error-context.md', recursive=True):
+              text = open(f, encoding='utf-8', errors='replace').read()[:6000]
+              text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f"::error title=Playwright error-context {f.split('/')[1][:60]}::{text}")
+          PY
+
       - name: Upload Playwright test results
         if: always()
         uses: actions/upload-artifact@v4
