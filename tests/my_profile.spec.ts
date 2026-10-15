@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { requireEnv } from './e2e-env';
 import { test, expect } from '@playwright/test';
 
 async function isSupabaseReachable(): Promise<boolean> {
@@ -23,10 +24,10 @@ async function login(page: any) {
   await page.locator('[data-testid="open-auth-modal"]').click();
   await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
   await page.locator('[data-testid="auth-email-input"]').fill(
-    process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com'
+    requireEnv('E2E_AUTH_EMAIL')
   );
   await page.locator('[data-testid="auth-password-input"]').fill(
-    process.env.E2E_AUTH_PASSWORD ?? 'Maki4321'
+    requireEnv('E2E_AUTH_PASSWORD')
   );
   await page.locator('[data-testid="auth-submit-button"]').click();
   await expect(chip).toBeVisible({ timeout: 20000 });
