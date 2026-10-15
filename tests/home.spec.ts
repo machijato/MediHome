@@ -195,8 +195,8 @@ test('authenticated user can create listing and see pending success screen', asy
       await supabase.from('provider_listings').delete().eq('id', listingToDelete.id);
     }
 
-    // Sign out after cleanup
-    await supabase.auth.signOut();
+    // Odjava samo lokalne sesije: globalna odjava poništi i prijavu preglednika u drugim testovima koji teku paralelno
+    await supabase.auth.signOut({ scope: 'local' });
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;

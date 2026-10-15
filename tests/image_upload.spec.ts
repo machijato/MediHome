@@ -122,8 +122,8 @@ test('authenticated user can upload image during listing creation', async ({ pag
     await supabase.from('provider_listings').delete().eq('id', listingToDelete.id);
   }
 
-  // Sign out after cleanup
-  await supabase.auth.signOut();
+  // Odjava samo lokalne sesije: globalna odjava poništi i prijavu preglednika u drugim testovima koji teku paralelno
+  await supabase.auth.signOut({ scope: 'local' });
 });
 
 test('user can skip image upload', async ({ page }) => {
@@ -197,6 +197,6 @@ test('user can skip image upload', async ({ page }) => {
     await supabase.from('provider_listings').delete().eq('id', listingToDelete.id);
   }
 
-  // Sign out after cleanup
-  await supabase.auth.signOut();
+  // Odjava samo lokalne sesije: globalna odjava poništi i prijavu preglednika u drugim testovima koji teku paralelno
+  await supabase.auth.signOut({ scope: 'local' });
 });
