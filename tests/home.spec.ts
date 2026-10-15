@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { requireEnv } from './e2e-env';
 import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 
@@ -92,8 +93,8 @@ test('authenticated user can create listing and see pending success screen', asy
       await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
       console.log('E2E STEP: after auth modal visible');
 
-      await page.locator('[data-testid="auth-email-input"]').fill(process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com');
-      await page.locator('[data-testid="auth-password-input"]').fill(process.env.E2E_AUTH_PASSWORD ?? 'Maki4321');
+      await page.locator('[data-testid="auth-email-input"]').fill(requireEnv('E2E_AUTH_EMAIL'));
+      await page.locator('[data-testid="auth-password-input"]').fill(requireEnv('E2E_AUTH_PASSWORD'));
 
       console.log('E2E STEP: before clicking auth submit');
       await page.locator('[data-testid="auth-submit-button"]').click();
@@ -139,6 +140,20 @@ test('authenticated user can create listing and see pending success screen', asy
       'Expected success screen after listing submit.'
     ).toBeVisible({ timeout: 20000 });
 
+    // Oglas u statusu pending vidi samo prijavljeni vlasnik, pa provjeru radimo kao taj korisnik.
+    const verificationEmail = process.env.E2E_AUTH_EMAIL;
+    const verificationPassword = process.env.E2E_AUTH_PASSWORD;
+    if (!verificationEmail || !verificationPassword) {
+      throw new Error('Missing E2E_AUTH_EMAIL or E2E_AUTH_PASSWORD for authenticated listing verification.');
+    }
+    const { error: signInError } = await verificationSupabase.auth.signInWithPassword({
+      email: verificationEmail,
+      password: verificationPassword
+    });
+    if (signInError) {
+      throw new Error(`Verification sign-in failed: ${signInError.message}`);
+    }
+
     const { data: listing, error: queryError } = await verificationSupabase
       .from('provider_listings')
       .select('title, slug, status, category_id, provider_profile_id')
@@ -163,8 +178,8 @@ test('authenticated user can create listing and see pending success screen', asy
 
     // Sign in as the test user to get authenticated session for cleanup
     await supabase.auth.signInWithPassword({
-      email: process.env.E2E_AUTH_EMAIL ?? 'makiblaz@gmail.com',
-      password: process.env.E2E_AUTH_PASSWORD ?? 'Maki4321',
+      email: requireEnv('E2E_AUTH_EMAIL'),
+      password: requireEnv('E2E_AUTH_PASSWORD'),
     });
 
     // Cleanup by exact title
@@ -180,8 +195,8 @@ test('authenticated user can create listing and see pending success screen', asy
       await supabase.from('provider_listings').delete().eq('id', listingToDelete.id);
     }
 
-    // Sign out after cleanup
-    await supabase.auth.signOut();
+    // Odjava samo lokalne sesije: globalna odjava poništi i prijavu preglednika u drugim testovima koji teku paralelno
+    await supabase.auth.signOut({ scope: 'local' });
   } catch (error) {
     await captureDiagnostics('failure');
     throw error;
