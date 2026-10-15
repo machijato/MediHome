@@ -139,6 +139,20 @@ test('authenticated user can create listing and see pending success screen', asy
       'Expected success screen after listing submit.'
     ).toBeVisible({ timeout: 20000 });
 
+    // Oglas u statusu pending vidi samo prijavljeni vlasnik, pa provjeru radimo kao taj korisnik.
+    const verificationEmail = process.env.E2E_AUTH_EMAIL;
+    const verificationPassword = process.env.E2E_AUTH_PASSWORD;
+    if (!verificationEmail || !verificationPassword) {
+      throw new Error('Missing E2E_AUTH_EMAIL or E2E_AUTH_PASSWORD for authenticated listing verification.');
+    }
+    const { error: signInError } = await verificationSupabase.auth.signInWithPassword({
+      email: verificationEmail,
+      password: verificationPassword
+    });
+    if (signInError) {
+      throw new Error(`Verification sign-in failed: ${signInError.message}`);
+    }
+
     const { data: listing, error: queryError } = await verificationSupabase
       .from('provider_listings')
       .select('title, slug, status, category_id, provider_profile_id')
