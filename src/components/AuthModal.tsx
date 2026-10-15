@@ -277,6 +277,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
                 </label>
                 <input
                   id="auth-new-password"
+                  data-testid="auth-new-password-input"
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -291,6 +292,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
                 </label>
                 <input
                   id="auth-confirm-password"
+                  data-testid="auth-confirm-password-input"
                   type="password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}

@@ -964,8 +964,26 @@ export default function App() {
     const hashType = hashParams.get('type');
 
     if (hashType === 'recovery') {
-      setIsRecoveryFlow(true);
-      setGlobalAuthOpen(true);
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      // Klijent ima detectSessionInUrl: false, pa sesiju iz linka za reset lozinke
+      // moramo postaviti ručno; bez nje updateUser vraća "Auth session missing!".
+      const openRecovery = async () => {
+        if (accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) {
+            console.error('Greška pri postavljanju sesije za reset lozinke:', error);
+          }
+        }
+        setIsRecoveryFlow(true);
+        setGlobalAuthOpen(true);
+      };
+
+      void openRecovery();
       window.history.replaceState({}, document.title, `${window.location.pathname}${window.location.search}`);
     }
   }, []);
