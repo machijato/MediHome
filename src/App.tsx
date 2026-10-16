@@ -9,7 +9,7 @@ import { CreateListingModal } from './CreateListingModal';
 import { AuthModal } from './components/AuthModal';
 import { ScrollToTop } from './components/ScrollToTop';
 import { AdSlot } from './components/AdSlot';
-import { MOCK_PROVIDERS, Provider, ZUPANIJE } from './constants';
+import { Provider, ZUPANIJE } from './constants';
 import { supabase } from './lib/supabase';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
@@ -109,7 +109,9 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   const activeCategory = searchParams.get('cat') ?? 'all';
   const selectedCounty = searchParams.get('county') ?? 'all';
   const searchQuery = searchParams.get('q') ?? '';
-  const [providers, setProviders] = useState<Provider[]>(MOCK_PROVIDERS);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [isLoadingProviders, setIsLoadingProviders] = useState(true);
+  const [providersLoadError, setProvidersLoadError] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
   const [homeArticles, setHomeArticles] = useState<any[]>([]);
   const pageSize = 12;
@@ -173,6 +175,8 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
         throw listingsError;
       }
 
+      setProvidersLoadError(false);
+
       if (!listingsData || listingsData.length === 0) {
         setProviders([]);
         setTotalCount(count ?? 0);
@@ -198,8 +202,11 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
       setTotalCount(count ?? 0);
     } catch (error) {
       console.error('Greška pri dohvaćanju oglasa iz Supabasea:', error);
-      setProviders(MOCK_PROVIDERS);
-      setTotalCount(MOCK_PROVIDERS.length);
+      setProviders([]);
+      setTotalCount(0);
+      setProvidersLoadError(true);
+    } finally {
+      setIsLoadingProviders(false);
     }
   }, []);
 
@@ -432,7 +439,14 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
               </div>
             )}
 
-            {providers.length === 0 && (
+            {providersLoadError && (
+              <div data-testid="listings-load-error" className="text-center py-20">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Oglase trenutno nije moguće učitati</h3>
+                <p className="text-slate-500">Pokušajte ponovno za nekoliko trenutaka.</p>
+              </div>
+            )}
+
+            {providers.length === 0 && !isLoadingProviders && !providersLoadError && (
               <div className="text-center py-20">
                 <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Filter className="w-10 h-10 text-slate-400" />
