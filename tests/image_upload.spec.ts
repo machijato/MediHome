@@ -157,7 +157,8 @@ test('authenticated user can upload image during listing creation', async ({ pag
 
   // Provjere tek nakon čišćenja, da neuspjeh ne ostavi test podatke u bazi.
   expect(savedOptionsErrorMessage, 'Reading selected options as owner failed.').toBeUndefined();
-  expect(savedOptionsCount, 'Selected specialization should be saved for the new listing.').toBeGreaterThan(0);
+  // Specijalizacija + zadani tip rada „teren" (oba moraju postojati u service_options).
+  expect(savedOptionsCount, 'Selected specialization and work type should be saved for the new listing.').toBeGreaterThanOrEqual(2);
   expect(storagePathCount, 'Expected the uploaded image to be stored with a storage_path.').toBeGreaterThan(0);
   expect(removeErrorMessage, 'Removing uploaded image file from storage failed.').toBeUndefined();
   expect(removedFileCount, 'Storage delete policy should allow the owner to delete the uploaded file.').toBe(storagePathCount);
