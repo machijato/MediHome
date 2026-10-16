@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
 import { ZUPANIJE } from './constants';
 import { supabase } from './lib/supabase';
+import { removeListingImageFiles } from './lib/removeListingImageFiles';
 import { generateListingSlug } from './utils/slugify';
 
 interface CreateListingModalProps {
@@ -361,6 +362,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       setIsUploading(true);
       try {
         if (isEditMode && editListing?.id) {
+          await removeListingImageFiles(editListing.id);
           await supabase
             .from('listing_images')
             .delete()
