@@ -17,11 +17,15 @@ async function isSupabaseReachable(): Promise<boolean> {
   }
 }
 
-const goFromCategoryToDetails = async (page: Page) => {
+const goFromCategoryToDetails = async (page: Page, specializations: string[] = []) => {
   await page.locator('[data-testid="category-fizioterapeut"]').click();
 
   // Selecting a category auto-advances the wizard from step 1 to step 2.
   await expect(page.getByText('Tip rada (moguće označiti oba)')).toBeVisible();
+
+  for (const specialization of specializations) {
+    await page.getByLabel(specialization).check();
+  }
 
   // Step 2 contains service options; the next click moves to listing details (step 3).
   await page.locator('[data-testid="next-step"]').click();
@@ -70,7 +74,7 @@ test('authenticated user can upload image during listing creation', async ({ pag
   const modal = page.locator('[data-testid="create-listing-modal"]');
   await expect(modal).toBeVisible();
 
-  await goFromCategoryToDetails(page);
+  await goFromCategoryToDetails(page, ['Neurološka fizioterapija']);
 
   const uniqueTitle = `E2E Image Upload Test ${Date.now()}`;
   await page.locator('[data-testid="input-title"]').fill(uniqueTitle);
@@ -116,7 +120,33 @@ test('authenticated user can upload image during listing creation', async ({ pag
     .eq('title', uniqueTitle)
     .maybeSingle();
 
+  let savedOptionsCount = 0;
+  let savedOptionsErrorMessage: string | undefined;
+  let storagePathCount = 0;
+  let removedFileCount = 0;
+  let removeErrorMessage: string | undefined;
+
   if (listingToDelete?.id) {
+    const { data: savedOptions, error: savedOptionsError } = await supabase
+      .from('listing_selected_options')
+      .select('id')
+      .eq('listing_id', listingToDelete.id);
+    savedOptionsCount = savedOptions?.length ?? 0;
+    savedOptionsErrorMessage = savedOptionsError?.message;
+
+    // Datoteku slike brišemo prije retka oglasa (pravilo za brisanje provjerava vlasništvo preko oglasa).
+    const { data: imageRows } = await supabase
+      .from('listing_images')
+      .select('storage_path')
+      .eq('listing_id', listingToDelete.id);
+    const storagePaths = (imageRows ?? []).map((row) => row.storage_path).filter((path): path is string => Boolean(path));
+    storagePathCount = storagePaths.length;
+    if (storagePaths.length > 0) {
+      const { data: removedFiles, error: removeError } = await supabase.storage.from('listing-images').remove(storagePaths);
+      removedFileCount = removedFiles?.length ?? 0;
+      removeErrorMessage = removeError?.message;
+    }
+
     await supabase.from('listing_images').delete().eq('listing_id', listingToDelete.id);
     await supabase.from('listing_selected_options').delete().eq('listing_id', listingToDelete.id);
     await supabase.from('provider_listings').delete().eq('id', listingToDelete.id);
@@ -124,6 +154,13 @@ test('authenticated user can upload image during listing creation', async ({ pag
 
   // Odjava samo lokalne sesije: globalna odjava poništi i prijavu preglednika u drugim testovima koji teku paralelno
   await supabase.auth.signOut({ scope: 'local' });
+
+  // Provjere tek nakon čišćenja, da neuspjeh ne ostavi test podatke u bazi.
+  expect(savedOptionsErrorMessage, 'Reading selected options as owner failed.').toBeUndefined();
+  expect(savedOptionsCount, 'Selected specialization should be saved for the new listing.').toBeGreaterThan(0);
+  expect(storagePathCount, 'Expected the uploaded image to be stored with a storage_path.').toBeGreaterThan(0);
+  expect(removeErrorMessage, 'Removing uploaded image file from storage failed.').toBeUndefined();
+  expect(removedFileCount, 'Storage delete policy should allow the owner to delete the uploaded file.').toBe(storagePathCount);
 });
 
 test('user can skip image upload', async ({ page }) => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { removeListingImageFiles } from '../lib/removeListingImageFiles';
 
 interface AdminPageProps {
   user: any;
@@ -177,6 +178,7 @@ function AdminListings() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Sigurno želite obrisati ovaj oglas?')) return;
+    await removeListingImageFiles(id);
     await supabase.from('listing_images').delete().eq('listing_id', id);
     await supabase.from('listing_selected_options').delete().eq('listing_id', id);
     await supabase.from('provider_listings').delete().eq('id', id);
