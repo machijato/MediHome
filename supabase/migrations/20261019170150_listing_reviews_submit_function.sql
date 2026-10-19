@@ -1,5 +1,5 @@
 -- Recenzije oglasa, dio 3/4: funkcija submit_listing_review (jedini put za pisanje recenzije).
--- NAPOMENA: ova se migracija NIJE primijenila automatski (poziv je otkazan); treba je pokrenuti ručno u Supabase SQL Editoru.
+-- NAPOMENA: primijenjeno ručno u Supabase SQL Editoru (automatski pozivi su bili otkazani).
 
 -- ---------------------------------------------------------------------------
 -- Pisanje recenzije (jedini put za unos/izmjenu recenzije)
