@@ -5,6 +5,8 @@ import { ZUPANIJE } from './constants';
 import { supabase } from './lib/supabase';
 import { removeListingImageFiles } from './lib/removeListingImageFiles';
 import { generateListingSlug } from './utils/slugify';
+import { useIsBanned } from './hooks/useIsBanned';
+import { BannedNotice } from './components/BannedNotice';
 
 interface CreateListingModalProps {
   isOpen: boolean;
@@ -48,6 +50,20 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
   const [isUploading, setIsUploading] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [formData, setFormData] = useState(createInitialFormData);
+  const [sessionUserId, setSessionUserId] = useState<string | undefined>(undefined);
+  const isBanned = useIsBanned(sessionUserId);
+
+  // Id prijavljenog korisnika uzima se iz lokalne sesije kad se obrazac otvori (bez mrežnog poziva).
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setSessionUserId(data.session?.user?.id);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   const categories = [
     { id: 'fizioterapeut', name: 'Fizioterapeut', desc: 'Fizikalna terapija, masaža, vježbe', icon: Activity },
@@ -526,6 +542,10 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-8">
+              {isBanned ? (
+                <BannedNotice what="listing" />
+              ) : (
+              <>
               {step === 1 && (
                 <div className="space-y-6">
                   <h3 className="text-xl font-bold text-slate-900">Odaberite kategoriju</h3>
@@ -864,6 +884,8 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
                   </div>
                 )
               )}
+              </>
+              )}
             </div>
 
             {submitError && (
@@ -873,7 +895,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
             )}
 
             {/* Footer */}
-            {!submitSuccess && (
+            {!submitSuccess && !isBanned && (
             <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center sticky bottom-0 z-10">
               <button
                 type="button"
