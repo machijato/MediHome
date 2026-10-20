@@ -313,21 +313,34 @@ function AdminUsers() {
     fetchUsers();
   }, []);
 
-  const handleBan = async (id: string) => {
-    await supabase.from('provider_profiles').update({ status: 'banned', is_public: false }).eq('id', id);
-    setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, status: 'banned', is_public: false } : user)));
+  const [actionError, setActionError] = useState('');
+
+  // Promjena se prikazuje tek kad je baza stvarno spremila redak (ranije je sučelje javljalo uspjeh i kad ništa nije spremljeno).
+  const changeStatus = async (id: string, status: 'banned' | 'active') => {
+    setActionError('');
+    const isPublic = status === 'active';
+    const { data, error } = await supabase
+      .from('provider_profiles')
+      .update({ status, is_public: isPublic })
+      .eq('id', id)
+      .select('id');
+    if (error || !data || data.length === 0) {
+      if (error) console.error('Greška pri promjeni statusa korisnika:', error.message);
+      setActionError('Promjenu statusa korisnika nije moguće spremiti.');
+      return;
+    }
+    setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, status, is_public: isPublic } : user)));
   };
 
-  const handleUnban = async (id: string) => {
-    await supabase.from('provider_profiles').update({ status: 'active', is_public: true }).eq('id', id);
-    setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, status: 'active', is_public: true } : user)));
-  };
+  const handleBan = (id: string) => changeStatus(id, 'banned');
+  const handleUnban = (id: string) => changeStatus(id, 'active');
 
   return (
     <div data-testid="admin-users">
       <h2 className="text-xl font-semibold text-slate-900 mb-6">Upravljanje korisnicima</h2>
 
       {loading && <p>Učitavanje...</p>}
+      {actionError && <p data-testid="admin-users-error" role="alert" className="text-sm text-red-600 mb-4">{actionError}</p>}
 
       <div className="space-y-3">
         {users.map((user) => (
