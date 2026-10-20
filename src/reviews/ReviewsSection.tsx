@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useIsBanned } from '../hooks/useIsBanned';
+import { BannedNotice } from '../components/BannedNotice';
 import { supabase } from '../lib/supabase';
 import {
   Stars,
@@ -36,6 +38,7 @@ export function ReviewsSection({ listingId, providerProfileId, user, onLoginClic
   const [isOwner, setIsOwner] = useState(false);
   const [reports, setReports] = useState<Record<string, MyReport>>({});
   const [deleting, setDeleting] = useState(false);
+  const isBanned = useIsBanned(user?.id);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Vlasnik oglasa na stranici oglasa može odgovoriti na recenziju i prijaviti je.
@@ -167,6 +170,8 @@ export function ReviewsSection({ listingId, providerProfileId, user, onLoginClic
               >
                 Prijavite se da biste ostavili recenziju
               </button>
+            ) : isBanned ? (
+              <BannedNotice what="review" />
             ) : showForm ? (
               <ReviewForm
                 listingId={listingId}
