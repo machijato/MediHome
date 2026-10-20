@@ -1004,6 +1004,8 @@ function ListingDetailPage({ user, onLoginClick }: { user: any; onLoginClick: ()
 
 export default function App() {
   const [user, setUser] = useState<any>(null);
+  // Spremljena prijava učitava se asinkrono; do tada ne smijemo zaključiti da korisnik nije prijavljen.
+  const [authReady, setAuthReady] = useState(false);
   const [globalModalOpen, setGlobalModalOpen] = useState(false);
   const [globalAuthOpen, setGlobalAuthOpen] = useState(false);
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
@@ -1011,12 +1013,21 @@ export default function App() {
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setUser(data.session?.user ?? null);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setUser(data.session?.user ?? null);
+      })
+      .catch((error) => {
+        console.error('Greška pri učitavanju prijave:', error);
+      })
+      .finally(() => {
+        setAuthReady(true);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAuthReady(true);
     });
 
     return () => {
@@ -1107,11 +1118,24 @@ export default function App() {
           <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
-          <Route path="/moj-profil" element={user ? <MyProfilePage user={user} /> : <Navigate to="/" replace />} />
+          <Route
+            path="/moj-profil"
+            element={
+              !authReady ? (
+                <div className="flex items-center justify-center min-h-[60vh]">
+                  <p className="text-slate-500">Učitavanje...</p>
+                </div>
+              ) : user ? (
+                <MyProfilePage user={user} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
           <Route
             path="/admin"
             element={
-              adminLoading ? (
+              !authReady || adminLoading ? (
                 <div className="flex items-center justify-center min-h-[60vh]">
                   <p className="text-slate-500">Učitavanje...</p>
                 </div>
