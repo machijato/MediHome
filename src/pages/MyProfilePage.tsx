@@ -61,6 +61,14 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
             city: profileData.city ?? '',
             bio: profileData.bio ?? '',
           });
+        } else {
+          // Novoregistrirani korisnik još nema profil pružatelja: predpopuni iz računa i odmah ponudi unos.
+          setFormData((prev) => ({
+            ...prev,
+            display_name: user.user_metadata?.full_name ?? '',
+            email: user.email ?? '',
+          }));
+          setIsEditing(true);
         }
 
         if (profileData?.id) {
@@ -77,25 +85,32 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
     setSaving(true);
     setSaveError('');
     setSaveSuccess(false);
-    const { error } = await supabase
-      .from('provider_profiles')
-      .update({
-        display_name: formData.display_name,
-        phone: formData.phone,
-        email: formData.email,
-        website: formData.website,
-        city: formData.city,
-        bio: formData.bio,
-      })
-      .eq('user_id', user.id);
+
+    const values = {
+      display_name: formData.display_name,
+      phone: formData.phone,
+      email: formData.email,
+      website: formData.website,
+      city: formData.city,
+      bio: formData.bio,
+    };
+
+    // Bez profila UPDATE ne mijenja nijedan redak (i ne vraća grešku), pa se profil mora stvoriti.
+    const { data: saved, error } = profile?.id
+      ? await supabase.from('provider_profiles').update(values).eq('user_id', user.id).select().maybeSingle()
+      : await supabase.from('provider_profiles').insert({ ...values, user_id: user.id, provider_type: 'individual' }).select().maybeSingle();
+
     setSaving(false);
-    if (error) {
+    if (error || !saved) {
+      if (error) console.error('Greška pri spremanju profila:', error.message);
       setSaveError('Greška pri spremanju. Pokušajte ponovno.');
-    } else {
-      setSaveSuccess(true);
-      setIsEditing(false);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      return;
     }
+
+    setProfile(saved);
+    setSaveSuccess(true);
+    setIsEditing(false);
+    setTimeout(() => setSaveSuccess(false), 3000);
   };
 
   const handleDeactivateListing = async (listingId: string) => {
@@ -125,6 +140,12 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
       </div>
 
       {loading && <p>Učitavanje...</p>}
+
+      {!loading && !profile && (
+        <p data-testid="profile-missing-note" className="text-sm text-slate-600 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          Dovršite svoj profil pružatelja: upišite kontakt podatke i spremite ih. Bez profila ne možete objaviti oglas.
+        </p>
+      )}
 
       {!loading && (
         <>
