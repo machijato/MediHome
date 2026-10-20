@@ -47,7 +47,7 @@ function fulfillJson(route: Route, data: unknown, extraHeaders: Record<string, s
   });
 }
 
-async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown; submitted?: unknown[]; homeUrls?: string[] } = {}) {
+async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown; submitted?: unknown[]; homeUrls?: string[]; ownerProfile?: boolean; writes?: Array<{ url: string; body: unknown }> } = {}) {
   await page.route('**/auth/v1/token**', (route) =>
     route.fulfill({
       status: 200,
@@ -80,6 +80,7 @@ async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown;
     }
 
     if (route.request().method() !== 'GET' && route.request().method() !== 'HEAD') {
+      opts.writes?.push({ url: url.pathname, body: route.request().postDataJSON() });
       return fulfillJson(route, []);
     }
 
@@ -98,6 +99,8 @@ async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown;
       case 'service_categories':
         return fulfillJson(route, url.searchParams.get('id') ? [{ name: 'Fizioterapeut', slug: 'fizioterapeut' }] : [{ id: 'cat-1', slug: 'fizioterapeut' }]);
       case 'provider_profiles':
+        // Provjera vlasništva: upit s user_id filterom vraća profil samo vlasniku.
+        if (url.searchParams.get('user_id')) return fulfillJson(route, opts.ownerProfile ? [{ id: PROFILE_ID }] : []);
         return fulfillJson(route, [{ id: PROFILE_ID, display_name: 'Pružatelj d.o.o.', provider_type: 'physio', city: 'Zagreb', county: null, phone: null, email: null, website: null }]);
       case 'listing_rating_stats':
         return fulfillJson(route, opts.stats === undefined ? [{ review_count: 1, avg_rating: 4.5 }] : (opts.stats as unknown[]));
@@ -198,4 +201,36 @@ test('home cards show real ratings and "Nema ocjena", and sort select drives the
   await page.locator('[data-testid="home-sort"]').selectOption('cijena-rastuce');
   await expect(page).toHaveURL(/sort=cijena-rastuce/);
   await expect.poll(() => homeUrls.some((u) => decodeURIComponent(u).includes('order=price_from.asc'))).toBe(true);
+});
+
+test('listing owner can reply to and report a review directly on the listing page', async ({ page }) => {
+  const writes: Array<{ url: string; body: any }> = [];
+  await mockApi(page, { ownerProfile: true, writes });
+  await page.goto('/oglas/test-oglas');
+  await login(page);
+
+  await expect(page.locator('[data-testid="owner-reply-open"]')).toBeVisible();
+  await page.locator('[data-testid="owner-reply-open"]').click();
+  await page.locator('[data-testid="owner-reply-input"]').fill('Hvala na recenziji.');
+  await page.locator('[data-testid="owner-reply-save"]').click();
+  await expect.poll(() => writes.some((w) => w.url.endsWith('/review_replies'))).toBe(true);
+  const reply = writes.find((w) => w.url.endsWith('/review_replies'))!;
+  expect(JSON.stringify(reply.body)).toContain('Hvala na recenziji.');
+
+  await page.locator('[data-testid="owner-report-open"]').click();
+  await page.locator('[data-testid="owner-report-reason"]').selectOption('nije_koristio_uslugu');
+  await page.locator('[data-testid="owner-report-send"]').click();
+  await expect.poll(() => writes.some((w) => w.url.endsWith('/review_reports'))).toBe(true);
+  const report = writes.find((w) => w.url.endsWith('/review_reports'))!;
+  expect(report.body).toMatchObject({ review_id: 'rev-1', reason: 'nije_koristio_uslugu' });
+});
+
+test('a logged-in user who does not own the listing does not get owner actions', async ({ page }) => {
+  await mockApi(page, { ownerProfile: false });
+  await page.goto('/oglas/test-oglas');
+  await login(page);
+
+  await expect(page.locator('[data-testid="review-item"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid="owner-reply-open"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="owner-report-open"]')).toHaveCount(0);
 });

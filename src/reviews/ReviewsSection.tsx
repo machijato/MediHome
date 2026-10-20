@@ -10,6 +10,7 @@ import {
   recentMonthOptions,
 } from './Stars';
 import { REVIEW_SELECT, Review, replyOf } from './types';
+import { MyReport, OwnerActions } from './OwnerActions';
 
 type Question = { id: string; sort_order: number; question_text: string };
 type QuestionStat = { question_id: string; question_text: string; avg_score: number; answer_count: number };
@@ -17,13 +18,14 @@ type Stats = { review_count: number; avg_rating: number | null };
 
 type ReviewsSectionProps = {
   listingId: string;
+  providerProfileId?: string | null;
   user: any;
   onLoginClick: () => void;
 };
 
 const MAX_COMMENT = 1000;
 
-export function ReviewsSection({ listingId, user, onLoginClick }: ReviewsSectionProps) {
+export function ReviewsSection({ listingId, providerProfileId, user, onLoginClick }: ReviewsSectionProps) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [stats, setStats] = useState<Stats>({ review_count: 0, avg_rating: null });
@@ -31,14 +33,40 @@ export function ReviewsSection({ listingId, user, onLoginClick }: ReviewsSection
   const [questions, setQuestions] = useState<Question[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [reports, setReports] = useState<Record<string, MyReport>>({});
+
+  // Vlasnik oglasa na stranici oglasa može odgovoriti na recenziju i prijaviti je.
+  useEffect(() => {
+    let active = true;
+    if (!user || !providerProfileId) {
+      setIsOwner(false);
+      return;
+    }
+    supabase
+      .from('provider_profiles')
+      .select('id')
+      .eq('id', providerProfileId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active) setIsOwner(Boolean(data));
+      });
+    return () => {
+      active = false;
+    };
+  }, [user, providerProfileId]);
 
   const load = useCallback(async () => {
     setLoadError(false);
-    const [statsRes, qStatsRes, questionsRes, reviewsRes] = await Promise.all([
+    const [statsRes, qStatsRes, questionsRes, reviewsRes, reportsRes] = await Promise.all([
       supabase.from('listing_rating_stats').select('review_count, avg_rating').eq('listing_id', listingId).maybeSingle(),
       supabase.from('listing_question_stats').select('question_id, question_text, avg_score, answer_count').eq('listing_id', listingId),
       supabase.rpc('review_questions_for_listing', { p_listing_id: listingId }),
       supabase.from('listing_reviews').select(REVIEW_SELECT).eq('listing_id', listingId).order('created_at', { ascending: false }),
+      user
+        ? supabase.from('review_reports').select('review_id, status, reason').eq('reporter_user_id', user.id)
+        : Promise.resolve({ data: [] as MyReport[], error: null }),
     ]);
 
     if (statsRes.error || qStatsRes.error || questionsRes.error || reviewsRes.error) {
@@ -55,8 +83,9 @@ export function ReviewsSection({ listingId, user, onLoginClick }: ReviewsSection
     setQuestionStats((qStatsRes.data ?? []).map((s: any) => ({ ...s, avg_score: Number(s.avg_score) })));
     setQuestions((questionsRes.data ?? []) as Question[]);
     setReviews(((reviewsRes.data ?? []) as unknown as Review[]).map((r) => ({ ...r, rating: Number(r.rating) })));
+    setReports(Object.fromEntries(((reportsRes.data ?? []) as MyReport[]).map((r) => [r.review_id, r])));
     setLoading(false);
-  }, [listingId]);
+  }, [listingId, user]);
 
   useEffect(() => {
     setLoading(true);
@@ -151,7 +180,9 @@ export function ReviewsSection({ listingId, user, onLoginClick }: ReviewsSection
           {publicReviews.length > 0 && (
             <ul data-testid="reviews-list" className="space-y-5">
               {publicReviews.map((review) => (
-                <ReviewItem key={review.id} review={review} />
+                <ReviewItem key={review.id} review={review}>
+                  {isOwner && <OwnerActions review={review} report={reports[review.id]} onChanged={load} />}
+                </ReviewItem>
               ))}
             </ul>
           )}
