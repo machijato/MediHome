@@ -18,8 +18,11 @@ if (!hasSupabaseUrl || !hasSupabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    autoRefreshToken: false,
-    persistSession: false,
+    // Prijava se pamti u pregledniku (localStorage) i obnavlja sama, pa osvježavanje stranice ne odjavljuje korisnika.
+    // E2E testovi koriste svaki put novi preglednik, pa im to ne smeta.
+    autoRefreshToken: true,
+    persistSession: true,
+    // Sesiju iz linka za reset lozinke postavljamo ručno (vidi App.tsx), zato ostaje isključeno.
     detectSessionInUrl: false,
   },
 });

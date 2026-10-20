@@ -3,16 +3,18 @@ import { supabase } from '../lib/supabase';
 
 export function useAdmin(userId: string | undefined) {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Za koji je korisnik provjera gotova; "loading" se izvodi iz toga da ne postoji trenutak
+  // u kojem je korisnik poznat, a provjera još nije počela (inače bi /admin preusmjerio na početnu).
+  const [checkedFor, setCheckedFor] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (!userId) {
       setIsAdmin(false);
-      setLoading(false);
+      setCheckedFor(undefined);
       return;
     }
 
-    setLoading(true);
+    let active = true;
 
     const check = async () => {
       const { data } = await supabase
@@ -21,12 +23,19 @@ export function useAdmin(userId: string | undefined) {
         .eq('user_id', userId)
         .maybeSingle();
 
+      if (!active) return;
       setIsAdmin(data?.is_admin === true);
-      setLoading(false);
+      setCheckedFor(userId);
     };
 
     check();
+
+    return () => {
+      active = false;
+    };
   }, [userId]);
 
-  return { isAdmin, loading };
+  const loading = Boolean(userId) && checkedFor !== userId;
+
+  return { isAdmin: loading ? false : isAdmin, loading };
 }
