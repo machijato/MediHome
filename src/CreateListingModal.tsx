@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, MapPin, Euro, Info, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Phone, Globe, Activity, Home, Package } from 'lucide-react';
 import { ZUPANIJE } from './constants';
@@ -21,16 +21,8 @@ interface CreateListingModalProps {
   } | null;
 }
 
-export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, onClose, onSubmit, editListing = null }) => {
-  const isEditMode = Boolean(editListing);
-  const [step, setStep] = useState(1);
-  const [submitError, setSubmitError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploadPreviews, setUploadPreviews] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [formData, setFormData] = useState({
+function createInitialFormData() {
+  return {
     name: '',
     type: 'fizioterapeut',
     price: '',
@@ -43,7 +35,19 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     services: [] as string[],
     phone: '',
     website: ''
-  });
+  };
+}
+
+export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, onClose, onSubmit, editListing = null }) => {
+  const isEditMode = Boolean(editListing);
+  const [step, setStep] = useState(1);
+  const [submitError, setSubmitError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadPreviews, setUploadPreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [formData, setFormData] = useState(createInitialFormData);
 
   const categories = [
     { id: 'fizioterapeut', name: 'Fizioterapeut', desc: 'Fizikalna terapija, masaža, vježbe', icon: Activity },
@@ -453,15 +457,21 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
     setStep(step - 1);
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      setSubmitSuccess(false);
-    }
-  }, [isOpen]);
+  // Prozor ostaje montiran i samo se sakriva, pa se stanje vraća na početak pri svakom otvaranju i zatvaranju:
+  // novi oglas uvijek kreće od prvog koraka s praznim obrascem, a uređivanje od koraka 2 s podacima oglasa.
+  // Ovisi o id-u oglasa (ne o objektu) da se obrazac ne resetira dok korisnik tipka.
+  useLayoutEffect(() => {
+    setStep(1);
+    setFormData(createInitialFormData());
+    setSelectedFiles([]);
+    setUploadPreviews([]);
+    setSubmitError('');
+    setIsSubmitting(false);
+    setIsUploading(false);
+    setSubmitSuccess(false);
 
-  useEffect(() => {
-    if (editListing) {
-      setFormData(prev => ({
+    if (isOpen && editListing) {
+      setFormData((prev) => ({
         ...prev,
         name: editListing.title ?? '',
         description: editListing.description ?? '',
@@ -471,7 +481,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
       }));
       setStep(2);
     }
-  }, [editListing]);
+  }, [isOpen, editListing?.id]);
 
   useEffect(() => () => {
     uploadPreviews.forEach((url) => URL.revokeObjectURL(url));
