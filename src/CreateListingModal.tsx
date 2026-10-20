@@ -302,10 +302,29 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
         return;
       }
 
-      if (!providerProfile?.id) {
-        setSubmitError('Vaš korisnički račun još nema profil pružatelja usluge.');
-        setIsSubmitting(false);
-        return;
+      let providerProfileId: string | null = providerProfile?.id ?? null;
+
+      if (!providerProfileId) {
+        // Novoregistrirani korisnik još nema profil pružatelja: stvori ga iz podataka računa
+        // (zaštićena polja, npr. status, postavlja baza), pa nastavi s objavom oglasa.
+        const { data: createdProfile, error: createProfileError } = await supabase
+          .from('provider_profiles')
+          .insert({
+            user_id: userData.user.id,
+            display_name: userData.user.user_metadata?.full_name ?? null,
+            email: userData.user.email ?? null,
+            provider_type: 'individual',
+          })
+          .select('id')
+          .single();
+
+        if (createProfileError || !createdProfile?.id) {
+          console.error('Greška pri stvaranju profila pružatelja:', createProfileError);
+          setSubmitError('Profil pružatelja nije moguće stvoriti. Pokušajte ponovno ili ga dovršite u "Moj profil".');
+          setIsSubmitting(false);
+          return;
+        }
+        providerProfileId = createdProfile.id;
       }
 
       const { data: category, error: categoryError } = await supabase
@@ -339,7 +358,7 @@ export const CreateListingModal: React.FC<CreateListingModalProps> = ({ isOpen, 
           price_from: Number.isFinite(priceFrom) ? priceFrom : 0,
           price_unit: 'EUR',
           category_id: category.id,
-          provider_profile_id: providerProfile.id,
+          provider_profile_id: providerProfileId,
         })
         .select('id')
         .single();
