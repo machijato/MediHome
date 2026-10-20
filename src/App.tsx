@@ -23,6 +23,7 @@ import { ArticleDetailPage } from './pages/ArticleDetailPage';
 import { CategoryPage } from './pages/CategoryPage';
 import { useAdmin } from './hooks/useAdmin';
 import { SEO } from './components/SEO';
+import { ReviewsSection } from './reviews/ReviewsSection';
 
 type HomePageProps = {
   user: any;
@@ -104,11 +105,29 @@ function Footer() {
   );
 }
 
+// Statistika ocjena uz oglas (PostgREST za 1:1 vezu vraća objekt, ali podržavamo i polje).
+function ratingOf(listing: any): { avg_rating: number | string | null; review_count: number } | null {
+  const stats = listing?.listing_rating_stats;
+  if (!stats) return null;
+  return Array.isArray(stats) ? (stats[0] ?? null) : stats;
+}
+
+type SortMode = 'ocjena' | 'najnovije' | 'cijena-rastuce' | 'cijena-padajuce';
+
+const SORT_OPTIONS: Array<{ value: SortMode; label: string }> = [
+  { value: 'ocjena', label: 'Najbolje ocijenjeno' },
+  { value: 'najnovije', label: 'Najnovije' },
+  { value: 'cijena-rastuce', label: 'Cijena: od najniže' },
+  { value: 'cijena-padajuce', label: 'Cijena: od najviše' },
+];
+
 function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get('cat') ?? 'all';
   const selectedCounty = searchParams.get('county') ?? 'all';
   const searchQuery = searchParams.get('q') ?? '';
+  const sortParam = searchParams.get('sort');
+  const sortMode: SortMode = SORT_OPTIONS.some((o) => o.value === sortParam) ? (sortParam as SortMode) : 'ocjena';
   const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
   const [providersLoadError, setProvidersLoadError] = useState(false);
@@ -123,6 +142,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
     county: string,
     q: string,
     page: number,
+    sort: SortMode,
   ) => {
     try {
       const { data: categoriesData, error: categoriesError } = await supabase
@@ -148,28 +168,47 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
         return 'other';
       };
 
-      let query = supabase
-        .from('provider_listings')
-        .select('id, slug, title, description, city, price_from, price_unit, category_id, status, listing_images(*)', { count: 'exact' })
-        .eq('status', 'approved');
-
-      if (catSlug && catSlug !== 'all') {
-        const catId = categoriesData?.find((category: any) => category.slug === catSlug)?.id;
-        if (catId) query = query.eq('category_id', catId);
-      }
-
-      if (county && county !== 'all') {
-        query = query.ilike('city', `%${county}%`);
-      }
-
-      if (q && q.trim()) {
-        query = query.or(`title.ilike.%${q.trim()}%,description.ilike.%${q.trim()}%`);
-      }
-
+      const catId = catSlug && catSlug !== 'all'
+        ? categoriesData?.find((category: any) => category.slug === catSlug)?.id
+        : undefined;
       const offset = (page - 1) * pageSize;
-      query = query.range(offset, offset + pageSize - 1);
 
-      const { data: listingsData, error: listingsError, count } = await query;
+      const buildQuery = (sortBy: SortMode) => {
+        let query = supabase
+          .from('provider_listings')
+          .select('id, slug, title, description, city, price_from, price_unit, category_id, status, created_at, listing_images(*), listing_rating_stats(avg_rating, review_count)', { count: 'exact' })
+          .eq('status', 'approved');
+
+        if (catId) query = query.eq('category_id', catId);
+
+        if (county && county !== 'all') {
+          query = query.ilike('city', `%${county}%`);
+        }
+
+        if (q && q.trim()) {
+          query = query.or(`title.ilike.%${q.trim()}%,description.ilike.%${q.trim()}%`);
+        }
+
+        if (sortBy === 'ocjena') {
+          query = query.order('listing_rating_stats(avg_rating)', { ascending: false, nullsFirst: false });
+        } else if (sortBy === 'cijena-rastuce') {
+          query = query.order('price_from', { ascending: true, nullsFirst: false });
+        } else if (sortBy === 'cijena-padajuce') {
+          query = query.order('price_from', { ascending: false, nullsFirst: false });
+        }
+        // Stabilan redoslijed za straničenje (i kod jednakih ocjena/cijena): najnoviji prvi.
+        query = query.order('created_at', { ascending: false }).order('id', { ascending: true });
+
+        return query.range(offset, offset + pageSize - 1);
+      };
+
+      let { data: listingsData, error: listingsError, count } = await buildQuery(sort);
+
+      if (listingsError && sort === 'ocjena') {
+        // Ako sortiranje po ocjeni ne uspije, oglasi se i dalje prikazuju (najnoviji prvi).
+        console.error('Sortiranje po ocjeni nije uspjelo, koristim najnovije:', listingsError.message);
+        ({ data: listingsData, error: listingsError, count } = await buildQuery('najnovije'));
+      }
 
       if (listingsError) {
         throw listingsError;
@@ -188,8 +227,8 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
         slug: listing.slug ?? null,
         name: listing.title ?? 'Bez naslova',
         type: mapCategoryToProviderType(String(listing.category_id)),
-        rating: 5,
-        reviewsCount: 0,
+        rating: ratingOf(listing)?.avg_rating != null ? Number(ratingOf(listing)!.avg_rating) : null,
+        reviewsCount: ratingOf(listing)?.review_count ?? 0,
         price: [listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru',
         location: listing.city ?? 'Nepoznato',
         image: `https://picsum.photos/seed/${listing.id}/400/300`,
@@ -211,8 +250,8 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   }, []);
 
   useEffect(() => {
-    fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage);
-  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage, listingRefreshKey]);
+    fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage, sortMode);
+  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage, sortMode, listingRefreshKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -256,6 +295,15 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
       if (value === 'all' || !value) next.delete('county'); else next.set('county', value);
+      next.delete('page');
+      return next;
+    });
+  };
+
+  const handleSortChange = (value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === 'ocjena' || !value) next.delete('sort'); else next.set('sort', value);
       next.delete('page');
       return next;
     });
@@ -372,10 +420,21 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
             <div className="flex justify-between items-center my-8">
               <h2 className="text-2xl font-bold text-slate-900">Istaknuti oglasi</h2>
               <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
-                  Sortiraj: Najbolje ocijenjeno
-                  <ChevronDown className="w-4 h-4" />
-                </button>
+                <label htmlFor="home-sort" className="text-sm font-medium text-slate-600">Sortiraj:</label>
+                <div className="relative">
+                  <select
+                    id="home-sort"
+                    data-testid="home-sort"
+                    value={sortMode}
+                    onChange={(e) => handleSortChange(e.target.value)}
+                    className="appearance-none pl-4 pr-10 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors focus:outline-none"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                </div>
               </div>
             </div>
 
@@ -572,7 +631,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
 }
 
 
-function ListingDetailPage() {
+function ListingDetailPage({ user, onLoginClick }: { user: any; onLoginClick: () => void }) {
   const { slug } = useParams<{ slug: string }>();
   const [listing, setListing] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -822,6 +881,8 @@ function ListingDetailPage() {
               <p className="text-sm text-slate-500">Nema dodatno označenih usluga.</p>
             </section>
           )}
+
+          <ReviewsSection listingId={listing.id} user={user} onLoginClick={onLoginClick} />
         </section>
 
         <aside className="space-y-6 order-last lg:order-none">
@@ -1037,7 +1098,7 @@ export default function App() {
               />
             }
           />
-          <Route path="/oglas/:slug" element={<ListingDetailPage />} />
+          <Route path="/oglas/:slug" element={<ListingDetailPage user={user} onLoginClick={() => setGlobalAuthOpen(true)} />} />
           <Route path="/kategorija/:categorySlug" element={<CategoryPage />} />
           <Route path="/clanci" element={<ArticlesPage />} />
           <Route path="/clanak/:slug" element={<ArticleDetailPage />} />

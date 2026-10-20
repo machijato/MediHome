@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { removeListingImageFiles } from '../lib/removeListingImageFiles';
+import { AdminReviews } from '../reviews/AdminReviews';
 
 interface AdminPageProps {
   user: any;
 }
 
-type AdminTab = 'dashboard' | 'listings' | 'users' | 'articles';
+type AdminTab = 'dashboard' | 'listings' | 'users' | 'articles' | 'reviews';
 type ListingFilter = 'all' | 'pending' | 'approved' | 'draft';
 type BlockType = 'heading' | 'text' | 'image';
 
@@ -45,6 +46,7 @@ export function AdminPage({ user }: AdminPageProps) {
           { key: 'listings', label: 'Oglasi', testid: 'admin-tab-listings' },
           { key: 'users', label: 'Korisnici', testid: 'admin-tab-users' },
           { key: 'articles', label: 'Članci', testid: 'admin-tab-articles' },
+          { key: 'reviews', label: 'Recenzije', testid: 'admin-tab-reviews' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -65,6 +67,7 @@ export function AdminPage({ user }: AdminPageProps) {
       {activeTab === 'listings' && <AdminListings />}
       {activeTab === 'users' && <AdminUsers />}
       {activeTab === 'articles' && <AdminArticles />}
+      {activeTab === 'reviews' && <AdminReviews user={user} />}
     </main>
   );
 }

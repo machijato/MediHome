@@ -35,11 +35,15 @@ export const ListingCard: React.FC<ListingCardProps> = ({ provider }) => {
       <div className="p-5">
         <div className="flex justify-between items-start mb-2">
           <h3 className="text-lg font-bold text-slate-900">{provider.name}</h3>
-          <div className="flex items-center gap-1 text-amber-500">
-            <Star className="w-4 h-4 fill-current" />
-            <span className="text-sm font-bold">{provider.rating}</span>
-            <span className="text-xs text-slate-400 font-normal">({provider.reviewsCount})</span>
-          </div>
+          {provider.rating != null && provider.reviewsCount > 0 ? (
+            <div data-testid="listing-card-rating" className="flex items-center gap-1 text-amber-500 shrink-0">
+              <Star className="w-4 h-4 fill-current" />
+              <span className="text-sm font-bold">{provider.rating.toFixed(1).replace('.', ',')}</span>
+              <span className="text-xs text-slate-400 font-normal">({provider.reviewsCount})</span>
+            </div>
+          ) : (
+            <span data-testid="listing-card-no-rating" className="text-xs text-slate-400 shrink-0 mt-1">Nema ocjena</span>
+          )}
         </div>
 
         <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">
