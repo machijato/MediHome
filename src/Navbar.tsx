@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, User, Menu, PlusCircle } from 'lucide-react';
+import { NotificationBell } from './components/NotificationBell';
 
 interface NavbarProps {
   onPostAdClick: () => void;
@@ -33,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onPostAdClick, onLoginClick, onL
               <PlusCircle className="w-5 h-5" />
               Objavi oglas
             </button>
+            {user && <NotificationBell user={user} isAdmin={isAdmin} />}
             {user ? (
               <div data-testid="auth-user-chip" className="flex items-center gap-3 px-4 py-2 bg-slate-200 rounded-full">
                 <span className="text-sm font-medium">{user.user_metadata?.full_name || user.email}</span>
