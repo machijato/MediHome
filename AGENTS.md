@@ -20,7 +20,7 @@ This file defines strict working rules for Codex in the MediHome repository.
 - Respect the existing Supabase schema, especially the `provider_listings` table.
 - Do **NOT** invent new columns or new tables.
 - Do **NOT** modify database structure unless explicitly instructed.
-- Do **NOT** modify RLS policies.
+- Do **NOT** modify RLS policies, except when the project owner explicitly requests it. In that case the PR must state which policies/functions change, why, and how the change was verified (e.g. a rolled-back test in the database).
 - Keep `App.tsx` fetch logic unchanged unless explicitly required.
 - `CreateListingModal` must remain simple (MVP level).
 
