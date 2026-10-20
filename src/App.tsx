@@ -882,7 +882,7 @@ function ListingDetailPage({ user, onLoginClick }: { user: any; onLoginClick: ()
             </section>
           )}
 
-          <ReviewsSection listingId={listing.id} user={user} onLoginClick={onLoginClick} />
+          <ReviewsSection listingId={listing.id} providerProfileId={listing.provider_profile_id} user={user} onLoginClick={onLoginClick} />
         </section>
 
         <aside className="space-y-6 order-last lg:order-none">
