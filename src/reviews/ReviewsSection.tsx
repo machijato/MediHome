@@ -35,6 +35,8 @@ export function ReviewsSection({ listingId, providerProfileId, user, onLoginClic
   const [showForm, setShowForm] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [reports, setReports] = useState<Record<string, MyReport>>({});
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Vlasnik oglasa na stranici oglasa može odgovoriti na recenziju i prijaviti je.
   useEffect(() => {
@@ -98,6 +100,22 @@ export function ReviewsSection({ listingId, providerProfileId, user, onLoginClic
     [reviews, user],
   );
   const publicReviews = reviews.filter((r) => r.status === 'published');
+
+  const handleDeleteOwn = async () => {
+    if (!myReview || deleting) return;
+    if (!window.confirm('Jeste li sigurni da želite trajno obrisati svoju recenziju? Ovo se ne može poništiti.')) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const { data, error } = await supabase.from('listing_reviews').delete().eq('id', myReview.id).select('id');
+    setDeleting(false);
+    if (error || !data || data.length === 0) {
+      console.error('[reviews] delete own failed:', error?.message ?? 'no rows deleted');
+      setDeleteError('Brisanje recenzije nije uspjelo. Pokušajte ponovno.');
+      return;
+    }
+    setShowForm(false);
+    await load();
+  };
 
   return (
     <section data-testid="listing-reviews" className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
@@ -169,6 +187,20 @@ export function ReviewsSection({ listingId, providerProfileId, user, onLoginClic
               >
                 {myReview ? 'Uredi svoju recenziju' : 'Ostavi recenziju'}
               </button>
+            )}
+            {myReview && !showForm && (
+              <button
+                type="button"
+                data-testid="review-delete-own"
+                onClick={handleDeleteOwn}
+                disabled={deleting}
+                className="ml-3 px-4 py-2.5 rounded-xl text-sm font-semibold border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-60"
+              >
+                {deleting ? 'Brisanje...' : 'Obriši svoju recenziju'}
+              </button>
+            )}
+            {deleteError && (
+              <p data-testid="review-delete-error" className="text-xs text-red-600 mt-2">{deleteError}</p>
             )}
             {myReview?.status === 'hidden' && !showForm && (
               <p data-testid="reviews-my-hidden" className="text-xs text-amber-700 mt-2">

@@ -47,7 +47,7 @@ function fulfillJson(route: Route, data: unknown, extraHeaders: Record<string, s
   });
 }
 
-async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown; submitted?: unknown[]; homeUrls?: string[]; ownerProfile?: boolean; writes?: Array<{ url: string; body: unknown }> } = {}) {
+async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown; submitted?: unknown[]; homeUrls?: string[]; ownerProfile?: boolean; writes?: Array<{ url: string; body: unknown; method?: string }>; deleteResult?: unknown[] } = {}) {
   await page.route('**/auth/v1/token**', (route) =>
     route.fulfill({
       status: 200,
@@ -80,8 +80,8 @@ async function mockApi(page: Page, opts: { reviews?: unknown[]; stats?: unknown;
     }
 
     if (route.request().method() !== 'GET' && route.request().method() !== 'HEAD') {
-      opts.writes?.push({ url: url.pathname, body: route.request().postDataJSON() });
-      return fulfillJson(route, []);
+      opts.writes?.push({ url: url.pathname, body: route.request().postDataJSON(), method: route.request().method() });
+      return fulfillJson(route, route.request().method() === 'DELETE' ? (opts.deleteResult ?? []) : []);
     }
 
     switch (table) {
@@ -233,4 +233,60 @@ test('a logged-in user who does not own the listing does not get owner actions',
   await expect(page.locator('[data-testid="review-item"]')).toHaveCount(1);
   await expect(page.locator('[data-testid="owner-reply-open"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="owner-report-open"]')).toHaveCount(0);
+});
+
+const myReviewRow = { ...reviewRow, id: 'rev-mine', reviewer_user_id: 'user-1', reviewer_name: 'Test K.', review_replies: null };
+
+test('author can delete their own review after confirming', async ({ page }) => {
+  const writes: Array<{ url: string; body: any; method?: string }> = [];
+  let dialogMessage = '';
+  await mockApi(page, { reviews: [myReviewRow], writes, deleteResult: [{ id: 'rev-mine' }] });
+  await page.goto('/oglas/test-oglas');
+  await login(page);
+
+  await expect(page.locator('[data-testid="review-delete-own"]')).toBeVisible();
+  page.once('dialog', (d) => {
+    dialogMessage = d.message();
+    void d.accept();
+  });
+  await page.locator('[data-testid="review-delete-own"]').click();
+
+  await expect.poll(() => writes.filter((w) => w.method === 'DELETE').length).toBe(1);
+  const del = writes.find((w) => w.method === 'DELETE')!;
+  expect(del.url.endsWith('/listing_reviews')).toBe(true);
+  expect(dialogMessage).toContain('obrisati svoju recenziju');
+  await expect(page.locator('[data-testid="review-delete-error"]')).toHaveCount(0);
+});
+
+test('cancelling the confirmation does not delete the review', async ({ page }) => {
+  const writes: Array<{ url: string; body: any; method?: string }> = [];
+  await mockApi(page, { reviews: [myReviewRow], writes, deleteResult: [{ id: 'rev-mine' }] });
+  await page.goto('/oglas/test-oglas');
+  await login(page);
+
+  page.once('dialog', (d) => void d.dismiss());
+  await page.locator('[data-testid="review-delete-own"]').click();
+  await page.waitForTimeout(500);
+  expect(writes.filter((w) => w.method === 'DELETE')).toHaveLength(0);
+  await expect(page.locator('[data-testid="review-delete-own"]')).toBeVisible();
+});
+
+test('failed delete (no row removed) shows an error and keeps the review', async ({ page }) => {
+  await mockApi(page, { reviews: [myReviewRow], deleteResult: [] });
+  await page.goto('/oglas/test-oglas');
+  await login(page);
+
+  page.once('dialog', (d) => void d.accept());
+  await page.locator('[data-testid="review-delete-own"]').click();
+  await expect(page.locator('[data-testid="review-delete-error"]')).toContainText('nije uspjelo');
+  await expect(page.locator('[data-testid="review-item"]')).toHaveCount(1);
+});
+
+test('delete button is not shown to visitors or to users without their own review', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/oglas/test-oglas');
+  await expect(page.locator('[data-testid="review-delete-own"]')).toHaveCount(0);
+  await login(page);
+  await expect(page.locator('[data-testid="review-item"]')).toHaveCount(1);
+  await expect(page.locator('[data-testid="review-delete-own"]')).toHaveCount(0);
 });
