@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { CreateListingModal } from '../CreateListingModal';
+import { OwnerReviews } from '../reviews/OwnerReviews';
 
 interface MyProfilePageProps {
   user: any;
@@ -239,6 +240,8 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
               </div>
             )}
           </div>
+
+          {profile?.id && <OwnerReviews profileId={profile.id} user={user} />}
         </>
       )}
 

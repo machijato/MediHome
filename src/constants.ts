@@ -3,7 +3,7 @@ export interface Provider {
   slug?: string | null;
   name: string;
   type: 'physio' | 'nurse' | 'equipment' | 'transport' | 'other';
-  rating: number;
+  rating: number | null;
   reviewsCount: number;
   price: string;
   location: string;
