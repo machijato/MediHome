@@ -91,8 +91,9 @@ export const AdSlot: React.FC<AdSlotProps> = ({ slotKey, className = '' }) => {
   return (
     <div
       data-testid={`ad-slot-${slotKey}`}
-      className={`flex justify-center items-center ${className}`}
+      className={`flex flex-col items-center gap-1 ${className}`}
     >
+      <span data-testid={`ad-slot-${slotKey}-label`} className="text-[10px] uppercase tracking-wider text-slate-400">Oglas</span>
       <a
         href={creative.target_url}
         target="_blank"

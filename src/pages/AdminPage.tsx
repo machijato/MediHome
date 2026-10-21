@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { removeListingImageFiles } from '../lib/removeListingImageFiles';
 import { AdminReviews } from '../reviews/AdminReviews';
+import { AdminAds } from '../ads/AdminAds';
 
 interface AdminPageProps {
   user: any;
 }
 
-type AdminTab = 'dashboard' | 'listings' | 'users' | 'articles' | 'reviews';
+type AdminTab = 'dashboard' | 'listings' | 'users' | 'articles' | 'reviews' | 'ads';
 type ListingFilter = 'all' | 'pending' | 'approved' | 'draft';
 type BlockType = 'heading' | 'text' | 'image';
 
@@ -47,6 +48,7 @@ export function AdminPage({ user }: AdminPageProps) {
           { key: 'users', label: 'Korisnici', testid: 'admin-tab-users' },
           { key: 'articles', label: 'Članci', testid: 'admin-tab-articles' },
           { key: 'reviews', label: 'Recenzije', testid: 'admin-tab-reviews' },
+          { key: 'ads', label: 'Reklame', testid: 'admin-tab-ads' },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -68,6 +70,7 @@ export function AdminPage({ user }: AdminPageProps) {
       {activeTab === 'users' && <AdminUsers />}
       {activeTab === 'articles' && <AdminArticles />}
       {activeTab === 'reviews' && <AdminReviews user={user} />}
+      {activeTab === 'ads' && <AdminAds />}
     </main>
   );
 }
