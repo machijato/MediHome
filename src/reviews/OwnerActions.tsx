@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { BLOCKED_ERROR_MESSAGE, isBlockedError } from '../lib/blocked';
 import { REPORT_REASONS, Review, replyOf } from './types';
 
 export type MyReport = { review_id: string; status: 'open' | 'accepted' | 'rejected'; reason: string };
@@ -31,7 +32,7 @@ export function OwnerActions({ review, report, onChanged }: { review: Review; re
     setBusy(false);
     if (error) {
       console.error('[owner-reviews] reply failed:', error.message);
-      setMessage('Odgovor nije moguće spremiti. Pokušajte ponovno.');
+      setMessage(isBlockedError(error) ? BLOCKED_ERROR_MESSAGE : 'Odgovor nije moguće spremiti. Pokušajte ponovno.');
       return;
     }
     setMode('none');
@@ -43,7 +44,7 @@ export function OwnerActions({ review, report, onChanged }: { review: Review; re
     const { error } = await supabase.from('review_replies').delete().eq('review_id', review.id);
     setBusy(false);
     if (error) {
-      setMessage('Odgovor nije moguće obrisati.');
+      setMessage(isBlockedError(error) ? BLOCKED_ERROR_MESSAGE : 'Odgovor nije moguće obrisati.');
       return;
     }
     setReplyText('');
@@ -59,7 +60,7 @@ export function OwnerActions({ review, report, onChanged }: { review: Review; re
     setBusy(false);
     if (error) {
       console.error('[owner-reviews] report failed:', error.message);
-      setMessage(error.code === '23505' ? 'Ovu recenziju ste već prijavili.' : 'Prijavu nije moguće poslati. Pokušajte ponovno.');
+      setMessage(error.code === '23505' ? 'Ovu recenziju ste već prijavili.' : isBlockedError(error) ? BLOCKED_ERROR_MESSAGE : 'Prijavu nije moguće poslati. Pokušajte ponovno.');
       return;
     }
     setMode('none');
