@@ -24,12 +24,12 @@ export function ArticlesPage() {
   return (
     <div data-testid="articles-page" className="max-w-5xl mx-auto px-4 py-10">
       <SEO
-        title="Članci i savjeti o zdravlju i njezi"
+        title="Blog: članci i savjeti o zdravlju i njezi"
         description="Korisni savjeti o fizioterapiji, rehabilitaciji i kućnoj njezi."
         canonicalPath="/clanci"
       />
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Članci i savjeti</h1>
+        <h1 className="text-3xl font-bold text-slate-900">Blog: članci i savjeti</h1>
         <p className="text-slate-500 mt-2">Korisni savjeti o zdravlju, rehabilitaciji i njezi</p>
       </div>
 
