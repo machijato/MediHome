@@ -65,10 +65,10 @@ function Footer() {
           <div>
             <h4 className="font-bold text-slate-900 mb-6">Usluge</h4>
             <ul className="space-y-4 text-sm text-slate-500">
-              <li><Link to="/?cat=fizioterapeut" data-testid="footer-category-fizioterapeut" className="hover:text-primary transition-colors text-left">Fizikalna terapija</Link></li>
-              <li><Link to="/?cat=kucna-njega" data-testid="footer-category-kucna-njega" className="hover:text-primary transition-colors text-left">Medicinska njega</Link></li>
-              <li><Link to="/?cat=najam-opreme" data-testid="footer-category-najam-opreme" className="hover:text-primary transition-colors text-left">Najam opreme</Link></li>
-              <li><Link to="/?cat=ljekarne-i-ducani" data-testid="footer-category-ljekarne-i-ducani" className="hover:text-primary transition-colors text-left">Ljekarne i dućani</Link></li>
+              <li><Link to="/?cat=fizioterapeut" state={{ scrollTo: 'rezultati' }} data-testid="footer-category-fizioterapeut" className="hover:text-primary transition-colors text-left">Fizikalna terapija</Link></li>
+              <li><Link to="/?cat=kucna-njega" state={{ scrollTo: 'rezultati' }} data-testid="footer-category-kucna-njega" className="hover:text-primary transition-colors text-left">Medicinska njega</Link></li>
+              <li><Link to="/?cat=najam-opreme" state={{ scrollTo: 'rezultati' }} data-testid="footer-category-najam-opreme" className="hover:text-primary transition-colors text-left">Najam opreme</Link></li>
+              <li><Link to="/?cat=ljekarne-i-ducani" state={{ scrollTo: 'rezultati' }} data-testid="footer-category-ljekarne-i-ducani" className="hover:text-primary transition-colors text-left">Ljekarne i dućani</Link></li>
             </ul>
           </div>
 
@@ -420,19 +420,17 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
           setActiveCategory={handleCategoryChange}
         />
 
-        <section id="rezultati" className="pb-12">
-          <div className="max-w-7xl mx-auto px-4">
-            <HomeFilters
-              params={searchParams}
-              update={updateParams}
-              activeCategory={activeCategory}
-              categoryName={CATEGORY_NAME_BY_SLUG[activeCategory] ?? null}
-              filters={listingFilters}
-            />
+        {/* Reklamni prostor: zasebna traka (prikazuje se samo kad postoji aktivna kampanja). */}
+        <AdSlot
+          slotKey="homepage-top"
+          className="w-full bg-white border-y border-slate-200 px-4 py-8 mb-12"
+        />
 
-            <div className="flex justify-between items-center my-8">
+        <section id="rezultati" className="pb-12 scroll-mt-20">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900">Istaknuti oglasi</h2>
+                <h2 data-testid="listings-heading" className="text-3xl font-bold text-slate-900">Oglasi</h2>
                 {!isLoadingProviders && !providersLoadError && (
                   <p data-testid="home-results-count" className="text-sm text-slate-500 mt-1">
                     {totalCount === 0 ? 'Nema rezultata' : `Prikazano je ${providers.length} od ${totalCount} oglasa`}
@@ -458,12 +456,15 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
               </div>
             </div>
 
-            <AdSlot
-              slotKey="homepage-top"
-              className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 my-4"
+            <HomeFilters
+              params={searchParams}
+              update={updateParams}
+              activeCategory={activeCategory}
+              categoryName={CATEGORY_NAME_BY_SLUG[activeCategory] ?? null}
+              filters={listingFilters}
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-6">
               <AnimatePresence mode="popLayout">
                 {providers.map((provider) => (
                   provider.slug ? (
@@ -491,7 +492,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
                     const next = new URLSearchParams(prev);
                     next.set('page', String(currentPage - 1));
                     return next;
-                  })}
+                  }, { state: { scrollTo: 'rezultati' } })}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-medium disabled:opacity-40 hover:bg-slate-50 transition-colors"
                 >
                   ← Prethodna
@@ -506,7 +507,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
                     const next = new URLSearchParams(prev);
                     next.set('page', String(currentPage + 1));
                     return next;
-                  })}
+                  }, { state: { scrollTo: 'rezultati' } })}
                   className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-medium disabled:opacity-40 hover:bg-slate-50 transition-colors"
                 >
                   Sljedeća →
