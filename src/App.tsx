@@ -13,6 +13,10 @@ import { ScrollToTop } from './components/ScrollToTop';
 import { AdSlot } from './components/AdSlot';
 import { Provider } from './constants';
 import { supabase } from './lib/supabase';
+import { KolaciciPage } from './pages/KolaciciPage';
+import { ImpressumPage } from './pages/ImpressumPage';
+import { KakoFunkcionirajuRecenzije } from './pages/KakoFunkcionirajuRecenzije';
+import { PrijavaSadrzaja } from './pages/PrijavaSadrzaja';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
@@ -75,6 +79,10 @@ function Footer() {
               <li><Link to="/uvjeti-koristenja" data-testid="footer-terms-link" className="hover:text-primary transition-colors">Opći uvjeti korištenja</Link></li>
               <li><Link to="/politika-privatnosti" data-testid="footer-privacy-link" className="hover:text-primary transition-colors">Politika privatnosti</Link></li>
               <li><Link to="/odricanje-odgovornosti" data-testid="footer-disclaimer-link" className="hover:text-primary transition-colors">Odricanje od odgovornosti</Link></li>
+              <li><Link to="/kolacici" data-testid="footer-cookies-link" className="hover:text-primary transition-colors">Politika kolačića</Link></li>
+              <li><Link to="/kako-funkcioniraju-recenzije" data-testid="footer-reviews-info-link" className="hover:text-primary transition-colors">Kako funkcioniraju recenzije</Link></li>
+              <li><Link to="/prijava-sadrzaja" data-testid="footer-report-content-link" className="hover:text-primary transition-colors">Prijava nezakonitog sadržaja</Link></li>
+              <li><Link to="/impressum" data-testid="footer-impressum-link" className="hover:text-primary transition-colors">Impressum</Link></li>
             </ul>
           </div>
 
@@ -1133,6 +1141,10 @@ export default function App() {
           <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
           <Route path="/politika-privatnosti" element={<PolitikaPrivatnosti />} />
           <Route path="/odricanje-odgovornosti" element={<OdricanjeOdgovornosti />} />
+          <Route path="/kolacici" element={<KolaciciPage />} />
+          <Route path="/impressum" element={<ImpressumPage />} />
+          <Route path="/kako-funkcioniraju-recenzije" element={<KakoFunkcionirajuRecenzije />} />
+          <Route path="/prijava-sadrzaja" element={<PrijavaSadrzaja />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
           <Route
