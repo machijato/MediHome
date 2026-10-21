@@ -26,6 +26,7 @@ import { MyProfilePage } from './pages/MyProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { ArticlesPage } from './pages/ArticlesPage';
 import { ArticleDetailPage } from './pages/ArticleDetailPage';
+import { ONamaPage } from './pages/ONamaPage';
 import { CategoryPage } from './pages/CategoryPage';
 import { useAdmin } from './hooks/useAdmin';
 import { LISTING_PLACEHOLDER_IMAGE } from './lib/placeholders';
@@ -75,7 +76,8 @@ function Footer() {
           <div>
             <h4 className="font-bold text-slate-900 mb-6">Informacije</h4>
             <ul className="space-y-4 text-sm text-slate-500">
-              <li><Link to="/clanci" data-testid="footer-articles-link" className="text-slate-500 hover:text-primary transition-colors text-sm">Članci i savjeti</Link></li>
+              <li><Link to="/o-nama" data-testid="footer-about-link" className="hover:text-primary transition-colors">O nama</Link></li>
+              <li><Link to="/clanci" data-testid="footer-articles-link" className="hover:text-primary transition-colors">Blog i članci</Link></li>
               <li><Link to="/uvjeti-koristenja" data-testid="footer-terms-link" className="hover:text-primary transition-colors">Opći uvjeti korištenja</Link></li>
               <li><Link to="/politika-privatnosti" data-testid="footer-privacy-link" className="hover:text-primary transition-colors">Politika privatnosti</Link></li>
               <li><Link to="/odricanje-odgovornosti" data-testid="footer-disclaimer-link" className="hover:text-primary transition-colors">Odricanje od odgovornosti</Link></li>
@@ -557,8 +559,8 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
                     <span className="text-primary">Postanite dio MediHome tima.</span>
                   </h2>
                   <p className="text-slate-400 text-lg mb-8">
-                    Pridružite se tisućama stručnjaka i tvrtki koji već koriste našu platformu za povezivanje s
-                    korisnicima. Brza objava, velika vidljivost.
+                    Pridružite se stručnjacima i tvrtkama koji svoje usluge predstavljaju na našoj platformi i
+                    povezuju se s korisnicima. Brza objava, jasna vidljivost.
                   </p>
                   <div className="flex flex-wrap justify-center md:justify-start gap-4">
                     <button
@@ -569,10 +571,10 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
                       <PlusCircle className="w-5 h-5" />
                       Objavi oglas
                     </button>
-                    <button data-testid="learn-more-cta" className="px-8 py-4 bg-white/10 text-white rounded-2xl font-bold text-lg hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2">
+                    <Link to="/o-nama" data-testid="learn-more-cta" className="px-8 py-4 bg-white/10 text-white rounded-2xl font-bold text-lg hover:bg-white/20 transition-all border border-white/10 flex items-center gap-2">
                       Saznaj više
                       <ArrowRight className="w-5 h-5" />
-                    </button>
+                    </Link>
                   </div>
                 </div>
                 <div className="hidden lg:block relative">
@@ -1136,6 +1138,7 @@ export default function App() {
           />
           <Route path="/oglas/:slug" element={<ListingDetailPage user={user} onLoginClick={() => setGlobalAuthOpen(true)} />} />
           <Route path="/kategorija/:categorySlug" element={<CategoryPage />} />
+          <Route path="/o-nama" element={<ONamaPage onPostAdClick={() => setGlobalModalOpen(true)} />} />
           <Route path="/clanci" element={<ArticlesPage />} />
           <Route path="/clanak/:slug" element={<ArticleDetailPage />} />
           <Route path="/uvjeti-koristenja" element={<UvjetiKoristenja />} />
