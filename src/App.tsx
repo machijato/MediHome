@@ -1,15 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
 import { Filter, ChevronDown, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
+import { HomeFilters } from './components/HomeFilters';
+import { CATEGORY_NAME_BY_SLUG, FILTER_PARAM_NAMES, ListingFilters, OPTION_GROUPS, readFilters } from './lib/homeFilters';
 import { CreateListingModal } from './CreateListingModal';
 import { AuthModal } from './components/AuthModal';
 import { ScrollToTop } from './components/ScrollToTop';
 import { AdSlot } from './components/AdSlot';
-import { Provider, ZUPANIJE } from './constants';
+import { Provider } from './constants';
 import { supabase } from './lib/supabase';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
@@ -125,6 +127,9 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   const searchQuery = searchParams.get('q') ?? '';
   const sortParam = searchParams.get('sort');
   const sortMode: SortMode = SORT_OPTIONS.some((o) => o.value === sortParam) ? (sortParam as SortMode) : 'ocjena';
+  const filtersKey = [searchParams.get('min'), searchParams.get('max'), ...OPTION_GROUPS.map((g) => searchParams.get(g.param))].join('|');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const listingFilters = useMemo<ListingFilters>(() => readFilters(searchParams), [filtersKey]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoadingProviders, setIsLoadingProviders] = useState(true);
   const [providersLoadError, setProvidersLoadError] = useState(false);
@@ -140,6 +145,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
     q: string,
     page: number,
     sort: SortMode,
+    filters: ListingFilters,
   ) => {
     try {
       const { data: categoriesData, error: categoriesError } = await supabase
@@ -170,6 +176,26 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
         : undefined;
       const offset = (page - 1) * pageSize;
 
+      // Filteri po opcijama: unutar skupine (tip rada, specijalizacija...) vrijedi "bilo koja" od odabranih opcija,
+      // a između skupina "sve". Najprije se nađu oglasi koji zadovoljavaju svaku skupinu, pa se presijeku.
+      const activeGroups = OPTION_GROUPS.filter((g) => (filters.options[g.param] ?? []).length > 0);
+      let restrictIds: string[] | null = null;
+      for (const g of activeGroups) {
+        const { data: matches, error: matchesError } = await supabase
+          .from('listing_selected_options')
+          .select('listing_id')
+          .in('option_id', filters.options[g.param]);
+        if (matchesError) throw matchesError;
+        const ids = new Set((matches ?? []).map((row: any) => String(row.listing_id)));
+        restrictIds = restrictIds ? restrictIds.filter((id) => ids.has(id)) : Array.from(ids);
+      }
+      if (restrictIds && restrictIds.length === 0) {
+        setProvidersLoadError(false);
+        setProviders([]);
+        setTotalCount(0);
+        return;
+      }
+
       const buildQuery = (sortBy: SortMode) => {
         let query = supabase
           .from('provider_listings')
@@ -177,6 +203,9 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
           .eq('status', 'approved');
 
         if (catId) query = query.eq('category_id', catId);
+        if (filters.min != null) query = query.gte('price_from', filters.min);
+        if (filters.max != null) query = query.lte('price_from', filters.max);
+        if (restrictIds) query = query.in('id', restrictIds);
 
         if (county && county !== 'all') {
           query = query.ilike('city', `%${county}%`);
@@ -247,8 +276,8 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
   }, []);
 
   useEffect(() => {
-    fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage, sortMode);
-  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage, sortMode, listingRefreshKey]);
+    fetchProviders(activeCategory, selectedCounty, searchQuery, currentPage, sortMode, listingFilters);
+  }, [fetchProviders, activeCategory, selectedCounty, searchQuery, currentPage, sortMode, listingFilters, listingRefreshKey]);
 
   useEffect(() => {
     let isMounted = true;
@@ -283,15 +312,17 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
       const next = new URLSearchParams(prev);
       const newCat = activeCategory === value ? 'all' : value;
       if (newCat === 'all') next.delete('cat'); else next.set('cat', newCat);
+      // Opcije (tip rada, specijalizacija...) vrijede samo za kategoriju fizioterapeuta.
+      for (const g of OPTION_GROUPS) next.delete(g.param);
       next.delete('page');
       return next;
     });
   };
 
-  const handleCountyChange = (value: string) => {
+  const updateParams = (change: (next: URLSearchParams) => void) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (value === 'all' || !value) next.delete('county'); else next.set('county', value);
+      change(next);
       next.delete('page');
       return next;
     });
@@ -363,7 +394,12 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
                     className="w-full px-6 py-4 bg-slate-100 rounded-2xl border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all outline-none text-lg"
                   />
                 </div>
-                <button className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
+                <button
+                  type="button"
+                  data-testid="hero-search-button"
+                  onClick={() => document.getElementById('rezultati')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="px-8 py-4 bg-primary text-white rounded-2xl font-bold text-lg hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                >
                   Pretraži
                 </button>
               </motion.div>
@@ -376,46 +412,25 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
           setActiveCategory={handleCategoryChange}
         />
 
-        <section className="pb-12">
+        <section id="rezultati" className="pb-12">
           <div className="max-w-7xl mx-auto px-4">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-              <div className="flex flex-col md:flex-row items-center gap-6">
-                <div className="flex items-center gap-3 text-slate-900 font-bold shrink-0">
-                  <MapPin className="w-5 h-5 text-primary" />
-                  <span>Filtriraj po lokaciji:</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => handleCountyChange('all')}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                      selectedCounty === 'all'
-                        ? 'bg-primary text-white shadow-md'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
-                  >
-                    Sve lokacije
-                  </button>
-                  <div className="relative">
-                    <select
-                      value={selectedCounty === 'all' ? '' : selectedCounty}
-                      onChange={(e) => handleCountyChange(e.target.value || 'all')}
-                      className="appearance-none pl-4 pr-10 py-2 rounded-full text-sm font-medium transition-all bg-slate-100 text-slate-600 hover:bg-slate-200 focus:outline-none"
-                    >
-                      <option value="">Odaberite županiju</option>
-                      {ZUPANIJE.map((county) => (
-                        <option key={county} value={county}>
-                          {county}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <HomeFilters
+              params={searchParams}
+              update={updateParams}
+              activeCategory={activeCategory}
+              categoryName={CATEGORY_NAME_BY_SLUG[activeCategory] ?? null}
+              filters={listingFilters}
+            />
 
             <div className="flex justify-between items-center my-8">
-              <h2 className="text-2xl font-bold text-slate-900">Istaknuti oglasi</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900">Istaknuti oglasi</h2>
+                {!isLoadingProviders && !providersLoadError && (
+                  <p data-testid="home-results-count" className="text-sm text-slate-500 mt-1">
+                    {totalCount === 0 ? 'Nema rezultata' : `Prikazano je ${providers.length} od ${totalCount} oglasa`}
+                  </p>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 <label htmlFor="home-sort" className="text-sm font-medium text-slate-600">Sortiraj:</label>
                 <div className="relative">
@@ -509,13 +524,11 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
                   onClick={() => {
                     setSearchParams((prev) => {
                       const next = new URLSearchParams(prev);
-                      next.delete('cat');
-                      next.delete('county');
-                      next.delete('q');
-                      next.delete('page');
+                      for (const name of FILTER_PARAM_NAMES) next.delete(name);
                       return next;
                     });
                   }}
+                  data-testid="show-all-listings"
                   className="mt-6 text-primary font-bold hover:underline"
                 >
                   Prikaži sve oglase
