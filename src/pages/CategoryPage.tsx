@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { LISTING_PLACEHOLDER_IMAGE } from '../lib/placeholders';
 import { supabase } from '../lib/supabase';
 import { SEO } from '../components/SEO';
 
@@ -96,7 +97,7 @@ export function CategoryPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {listings.map((listing) => {
             const primaryImage = listing.listing_images?.find((img: any) => img.is_primary) ?? listing.listing_images?.[0];
-            const imageUrl = primaryImage?.image_url ?? `https://picsum.photos/seed/${listing.id}/400/300`;
+            const imageUrl = primaryImage?.image_url ?? LISTING_PLACEHOLDER_IMAGE;
 
             return listing.slug ? (
               <Link key={listing.id} to={`/oglas/${listing.slug}`} data-testid="listing-card" className="block bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">

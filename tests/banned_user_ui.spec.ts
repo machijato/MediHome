@@ -72,7 +72,7 @@ test('blocked user sees a notice with the admin contact instead of the create-li
   await page.locator('[data-testid="open-create-listing"]').first().click();
   await expect(page.locator('[data-testid="create-listing-modal"]')).toBeVisible();
   await expect(page.locator('[data-testid="banned-notice"]')).toContainText('blokiran');
-  await expect(page.locator('[data-testid="banned-contact-link"]')).toHaveAttribute('href', /^mailto:makiblaz@gmail\.com\?subject=/);
+  await expect(page.locator('[data-testid="create-listing-modal"] [data-testid="banned-contact-link"]')).toHaveAttribute('href', /^mailto:makiblaz@gmail\.com\?subject=/);
   await expect(page.locator('[data-testid="category-selection"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="next-step"]')).toHaveCount(0);
 });
@@ -98,5 +98,36 @@ test('active user is not affected: create-listing form and review button are ava
   await page.goto('/');
   await page.locator('[data-testid="open-create-listing"]').first().click();
   await expect(page.locator('[data-testid="category-selection"]')).toBeVisible();
+  await expect(page.locator('[data-testid="banned-notice"]')).toHaveCount(0);
+});
+
+test('blocked user sees a banner on every page, and a blocked save in My profile shows the block message', async ({ page }) => {
+  await mockApi(page, 'banned');
+  await page.route('**/rest/v1/provider_profiles**', async (route) => {
+    const method = route.request().method();
+    if (method === 'PATCH' || method === 'POST') {
+      return route.fulfill({
+        status: 403,
+        contentType: 'application/json',
+        body: JSON.stringify({ code: '42501', message: 'Vaš račun je blokiran. Za odblokiranje obratite se administratoru.', details: null, hint: null }),
+      });
+    }
+    return route.fallback();
+  });
+  await page.goto('/');
+  await login(page);
+  await expect(page.locator('[data-testid="banned-banner"]')).toContainText('blokiran');
+
+  await page.locator('[data-testid="nav-my-profile-link"]').click();
+  await page.locator('[data-testid="edit-profile-button"]').click();
+  await page.locator('[data-testid="save-profile-button"]').click();
+  await expect(page.locator('[data-testid="save-error"]')).toContainText('blokiran');
+});
+
+test('active user does not see the banner', async ({ page }) => {
+  await mockApi(page, 'active');
+  await page.goto('/');
+  await login(page);
+  await expect(page.locator('[data-testid="banned-banner"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="banned-notice"]')).toHaveCount(0);
 });
