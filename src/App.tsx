@@ -24,6 +24,8 @@ import { CategoryPage } from './pages/CategoryPage';
 import { useAdmin } from './hooks/useAdmin';
 import { LISTING_PLACEHOLDER_IMAGE } from './lib/placeholders';
 import { ADMIN_CONTACT_EMAIL } from './lib/contact';
+import { useIsBanned } from './hooks/useIsBanned';
+import { BannedNotice } from './components/BannedNotice';
 import { SEO } from './components/SEO';
 import { ReviewsSection } from './reviews/ReviewsSection';
 
@@ -1006,6 +1008,7 @@ export default function App() {
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [listingRefreshKey, setListingRefreshKey] = useState(0);
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
+  const isBanned = useIsBanned(user?.id);
 
   useEffect(() => {
     supabase.auth
@@ -1085,6 +1088,12 @@ export default function App() {
         user={user}
         isAdmin={isAdmin}
       />
+
+      {isBanned && (
+        <div className="max-w-6xl w-full mx-auto px-4 pt-4">
+          <BannedNotice what="account" testId="banned-banner" />
+        </div>
+      )}
 
       <div className="flex-1">
         <ScrollToTop />
