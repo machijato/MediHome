@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Activity, Ambulance, HeartPulse, Package, Search } from 'lucide-react';
 import { motion } from 'motion/react';
 import { CATEGORIES } from './constants';
 
@@ -7,6 +7,13 @@ interface CategorySectionProps {
   activeCategory: string;
   setActiveCategory: (id: string) => void;
 }
+
+const CATEGORY_ICON_BY_ID: Record<string, React.ComponentType<{ className?: string }>> = {
+  physio: Activity,
+  nurse: HeartPulse,
+  equipment: Package,
+  transport: Ambulance,
+};
 
 const CATEGORY_SLUG_BY_ID: Record<string, string> = {
   physio: 'fizioterapeut',
@@ -42,14 +49,11 @@ export const CategorySection: React.FC<CategorySectionProps> = ({ activeCategory
                   : 'border-transparent shadow-md hover:border-slate-200'
               }`}
             >
-              <div className="relative h-40 w-full overflow-hidden">
-                <img 
-                  src={cat.image} 
-                  alt={cat.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+              <div className="relative h-40 w-full overflow-hidden bg-slate-100 flex items-center justify-center">
+                {(() => {
+                  const Icon = CATEGORY_ICON_BY_ID[cat.id] ?? Activity;
+                  return <Icon className={`w-16 h-16 ${cat.color} group-hover:scale-110 transition-transform duration-500`} />;
+                })()}
               </div>
               
               <div className="p-5 flex-1 flex flex-col">

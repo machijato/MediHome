@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="Oglas bez fotografije">
+  <rect width="400" height="300" fill="#eef2f7"/>
+  <g fill="none" stroke="#94a3b8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M200 105v90M155 150h90"/>
+    <rect x="120" y="75" width="160" height="150" rx="24"/>
+  </g>
+</svg>
