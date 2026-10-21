@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { BLOCKED_ERROR_MESSAGE, isBlockedError } from '../lib/blocked';
 import { CreateListingModal } from '../CreateListingModal';
 import { OwnerReviews } from '../reviews/OwnerReviews';
 
@@ -103,7 +104,7 @@ export function MyProfilePage({ user }: MyProfilePageProps) {
     setSaving(false);
     if (error || !saved) {
       if (error) console.error('Greška pri spremanju profila:', error.message);
-      setSaveError('Greška pri spremanju. Pokušajte ponovno.');
+      setSaveError(isBlockedError(error) ? BLOCKED_ERROR_MESSAGE : 'Greška pri spremanju. Pokušajte ponovno.');
       return;
     }
 

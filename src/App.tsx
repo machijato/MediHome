@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Link, Navigate, Route, Routes, useParams, useSearchParams } from 'react-router-dom';
-import { Filter, ChevronDown, Activity, HeartPulse, Package, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
+import { Filter, ChevronDown, MapPin, PlusCircle, ArrowRight, ImageOff, UserRound } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { CategorySection } from './CategorySection';
 import { ListingCard } from './ListingCard';
@@ -24,6 +24,10 @@ import { ArticlesPage } from './pages/ArticlesPage';
 import { ArticleDetailPage } from './pages/ArticleDetailPage';
 import { CategoryPage } from './pages/CategoryPage';
 import { useAdmin } from './hooks/useAdmin';
+import { LISTING_PLACEHOLDER_IMAGE } from './lib/placeholders';
+import { ADMIN_CONTACT_EMAIL } from './lib/contact';
+import { useIsBanned } from './hooks/useIsBanned';
+import { BannedNotice } from './components/BannedNotice';
 import { SEO } from './components/SEO';
 import { ReviewsSection } from './reviews/ReviewsSection';
 
@@ -87,20 +91,13 @@ function Footer() {
           <div>
             <h4 className="font-bold text-slate-900 mb-6">Kontakt</h4>
             <ul className="space-y-4 text-sm text-slate-500">
-              <li>info@medihome.hr</li>
-              <li>+385 1 234 5678</li>
-              <li>Zagreb, Hrvatska</li>
+              <li><a href={`mailto:${ADMIN_CONTACT_EMAIL}`} data-testid="footer-contact-email" className="hover:text-primary transition-colors">{ADMIN_CONTACT_EMAIL}</a></li>
             </ul>
           </div>
         </div>
 
         <div className="pt-8 border-t border-slate-100 flex flex-col md:row justify-between items-center gap-4">
-          <p className="text-slate-400 text-xs">© 2024 MediHome. Sva prava pridržana.</p>
-          <div className="flex gap-6">
-            <a href="#" data-testid="footer-activity-link" className="text-slate-400 hover:text-primary transition-colors"><Activity className="w-5 h-5" /></a>
-            <a href="#" data-testid="footer-heart-pulse-link" className="text-slate-400 hover:text-primary transition-colors"><HeartPulse className="w-5 h-5" /></a>
-            <a href="#" data-testid="footer-package-link" className="text-slate-400 hover:text-primary transition-colors"><Package className="w-5 h-5" /></a>
-          </div>
+          <p data-testid="footer-copyright" className="text-slate-400 text-xs">© {new Date().getFullYear()} MediHome. Sva prava pridržana.</p>
         </div>
       </div>
     </footer>
@@ -260,7 +257,7 @@ function HomePage({ setIsModalOpen, listingRefreshKey }: HomePageProps) {
         reviewsCount: ratingOf(listing)?.review_count ?? 0,
         price: [listing.price_from, listing.price_unit].filter(Boolean).join(' ') || 'Po dogovoru',
         location: listing.city ?? 'Nepoznato',
-        image: `https://picsum.photos/seed/${listing.id}/400/300`,
+        image: LISTING_PLACEHOLDER_IMAGE,
         listing_images: listing.listing_images ?? [],
         description: listing.description ?? '',
         tags: [],
@@ -1024,6 +1021,7 @@ export default function App() {
   const [isRecoveryFlow, setIsRecoveryFlow] = useState(false);
   const [listingRefreshKey, setListingRefreshKey] = useState(0);
   const { isAdmin, loading: adminLoading } = useAdmin(user?.id);
+  const isBanned = useIsBanned(user?.id);
 
   useEffect(() => {
     supabase.auth
@@ -1103,6 +1101,12 @@ export default function App() {
         user={user}
         isAdmin={isAdmin}
       />
+
+      {isBanned && (
+        <div className="max-w-6xl w-full mx-auto px-4 pt-4">
+          <BannedNotice what="account" testId="banned-banner" />
+        </div>
+      )}
 
       <div className="flex-1">
         <ScrollToTop />
