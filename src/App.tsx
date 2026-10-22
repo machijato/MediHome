@@ -20,7 +20,6 @@ import { PrijavaSadrzaja } from './pages/PrijavaSadrzaja';
 import { UvjetiKoristenja } from './pages/UvjetiKoristenja';
 import { PolitikaPrivatnosti } from './pages/PolitikaPrivatnosti';
 import { OdricanjeOdgovornosti } from './pages/OdricanjeOdgovornosti';
-import { ResetPassword } from './pages/ResetPassword';
 import { ProviderProfilePage } from './ProviderProfilePage';
 import { MyProfilePage } from './pages/MyProfilePage';
 import { AdminPage } from './pages/AdminPage';
@@ -1101,6 +1100,19 @@ export default function App() {
     setListingRefreshKey((currentKey) => currentKey + 1);
   };
 
+  const homeElement = (
+    <HomePage
+      user={user}
+      onLogoutClick={handleLogout}
+      isAdmin={isAdmin}
+      isModalOpen={globalModalOpen}
+      setIsModalOpen={setGlobalModalOpen}
+      isAuthOpen={globalAuthOpen}
+      setIsAuthOpen={setGlobalAuthOpen}
+      listingRefreshKey={listingRefreshKey}
+    />
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar
@@ -1122,21 +1134,7 @@ export default function App() {
       <div className="flex-1">
         <ScrollToTop />
         <Routes>
-          <Route
-            path="/"
-            element={
-              <HomePage
-                user={user}
-                onLogoutClick={handleLogout}
-                isAdmin={isAdmin}
-                isModalOpen={globalModalOpen}
-                setIsModalOpen={setGlobalModalOpen}
-                isAuthOpen={globalAuthOpen}
-                setIsAuthOpen={setGlobalAuthOpen}
-                listingRefreshKey={listingRefreshKey}
-              />
-            }
-          />
+          <Route path="/" element={homeElement} />
           <Route path="/oglas/:slug" element={<ListingDetailPage user={user} onLoginClick={() => setGlobalAuthOpen(true)} />} />
           <Route path="/kategorija/:categorySlug" element={<CategoryPage />} />
           <Route path="/o-nama" element={<ONamaPage onPostAdClick={() => setGlobalModalOpen(true)} />} />
@@ -1149,7 +1147,8 @@ export default function App() {
           <Route path="/impressum" element={<ImpressumPage />} />
           <Route path="/kako-funkcioniraju-recenzije" element={<KakoFunkcionirajuRecenzije />} />
           <Route path="/prijava-sadrzaja" element={<PrijavaSadrzaja />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* Poveznica iz e-maila za reset lozinke vodi ovdje; početna stranica otvara prozor za novu lozinku. */}
+          <Route path="/reset-password" element={homeElement} />
           <Route path="/profil/:profileId" element={<ProviderProfilePage />} />
           <Route
             path="/moj-profil"
