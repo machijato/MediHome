@@ -16,7 +16,9 @@ const fakeUser = {
   created_at: '2026-01-01T00:00:00Z',
 };
 
-test('recovery link sets the session so a new password can be saved', async ({ page }) => {
+// Prava poveznica iz e-maila vodi na /reset-password (vidi AuthModal), a ne na početnu.
+for (const startPath of ['/', '/reset-password']) {
+test(`recovery link on ${startPath} sets the session so a new password can be saved`, async ({ page }) => {
   const accessToken = [
     base64Url({ alg: 'HS256', typ: 'JWT' }),
     base64Url({ sub: fakeUser.id, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 }),
@@ -48,10 +50,12 @@ test('recovery link sets the session so a new password can be saved', async ({ p
     await route.fulfill({ status: 200, headers: corsHeaders, contentType: 'application/json', body: JSON.stringify(fakeUser) });
   });
 
-  await page.goto(`/#access_token=${accessToken}&refresh_token=fake-refresh&type=recovery`);
+  await page.goto(`${startPath}#access_token=${accessToken}&refresh_token=fake-refresh&type=recovery`);
 
   await expect(page.locator('[data-testid="auth-modal"]')).toBeVisible();
   await expect(page.locator('[data-testid="auth-new-password-input"]')).toBeVisible();
+  // Jedini obrazac za novu lozinku je onaj u prozoru (nema zasebne stare stranice).
+  await expect(page.locator('#new-password')).toHaveCount(0);
   await expect.poll(() => sessionVerifiedWithToken).toBe(true);
 
   await page.locator('[data-testid="auth-new-password-input"]').fill('nova-lozinka-123');
@@ -61,3 +65,4 @@ test('recovery link sets the session so a new password can be saved', async ({ p
   await expect(page.getByText('Lozinka uspješno promijenjena')).toBeVisible();
   expect(passwordUpdateAuthHeader).toBe(`Bearer ${accessToken}`);
 });
+}
