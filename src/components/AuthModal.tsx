@@ -15,6 +15,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -40,6 +41,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
     setMode('auth');
     setPassword('');
     setConfirmPassword('');
+    setAcceptedTerms(false);
     resetMessages();
   }, [isRecovery, open]);
 
@@ -47,12 +49,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
     resetMessages();
     setMode('auth');
     setConfirmPassword('');
+    setAcceptedTerms(false);
     onClose();
   };
 
   const handleTabChange = (tab: 'login' | 'register') => {
     setActiveTab(tab);
     setMode('auth');
+    setAcceptedTerms(false);
     resetMessages();
   };
 
@@ -144,12 +148,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
         return;
       }
 
+      if (!acceptedTerms) {
+        setErrorMessage('Za registraciju morate prihvatiti Uvjete korištenja i Politiku privatnosti.');
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            // Datum prihvaćanja Uvjeta i Politike privatnosti (sprema se uz račun).
+            terms_accepted_at: new Date().toISOString(),
           },
         },
       });
@@ -301,6 +312,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ open, onClose, isRecovery 
                 />
               </div>
             </>
+          )}
+
+          {mode === 'auth' && activeTab === 'register' && (
+            <label className="flex items-start gap-3 text-sm text-slate-600 leading-snug cursor-pointer">
+              <input
+                type="checkbox"
+                data-testid="auth-terms-checkbox"
+                checked={acceptedTerms}
+                onChange={(event) => setAcceptedTerms(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary/30"
+              />
+              <span>
+                Prihvaćam{' '}
+                <a href="/uvjeti-koristenja" target="_blank" rel="noopener noreferrer" data-testid="auth-terms-link" className="font-semibold text-primary hover:underline">
+                  Uvjete korištenja
+                </a>{' '}
+                i{' '}
+                <a href="/politika-privatnosti" target="_blank" rel="noopener noreferrer" data-testid="auth-privacy-link" className="font-semibold text-primary hover:underline">
+                  Politiku privatnosti
+                </a>
+                .
+              </span>
+            </label>
           )}
 
           {mode === 'auth' && activeTab === 'login' && (
