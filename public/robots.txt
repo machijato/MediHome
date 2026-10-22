@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+# Privatni dijelovi aplikacije ne trebaju biti u tražilicama.
+Disallow: /admin
+Disallow: /moj-profil
+Disallow: /reset-password
+
+Sitemap: https://medi-home-chi.vercel.app/sitemap.xml
